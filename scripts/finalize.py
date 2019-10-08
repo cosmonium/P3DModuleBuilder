@@ -6,7 +6,7 @@ import sys
 
 from shutil import copyfile
 from os.path import isfile, join
-from common import is_windows, get_output_dir, fatal_error, get_script_dir
+from common import is_windows, fatal_error, get_script_dir
 
 
 def find_binary():
@@ -23,11 +23,11 @@ def find_binary():
         target_file = MODULE_NAME + ".pyd"
 
         for config in configurations:
-            possible_files.append(join(get_output_dir(), config, MODULE_NAME + ".dll"))
+            possible_files.append(join(config, MODULE_NAME + ".dll"))
 
     else:
         target_file = MODULE_NAME + ".so"
-        possible_files.append(join(get_output_dir(), target_file))
+        possible_files.append(target_file)
 
     for file in possible_files:
         if isfile(file):
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     target_pdb_file = MODULE_NAME + ".pdb"
 
     if source_file:
-        dest_folder = join(get_script_dir(), "../")
+        dest_folder = "../../"
 
         # Copy the generated DLL
         copyfile(source_file, join(dest_folder, target_file))

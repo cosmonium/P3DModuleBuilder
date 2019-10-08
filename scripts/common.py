@@ -61,7 +61,7 @@ def get_basepath():
 
 def get_output_dir():
     """ Returns the output directory where CMake generates the build files into """
-    return realpath(join(get_basepath(), get_output_name()))
+    return realpath(join("build", get_output_name()))
 
 
 def get_python_dir():

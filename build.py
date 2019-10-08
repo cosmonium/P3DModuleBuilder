@@ -4,12 +4,7 @@
 import panda3d.core  # noqa
 
 import sys
-import os
 import argparse
-from os.path import join, realpath, dirname
-
-# Change into the current directory
-os.chdir(dirname(realpath(__file__)))
 
 from scripts.common import get_ini_conf, write_ini_conf  # noqa
 from scripts.setup import make_output_dir, run_cmake, run_cmake_build
@@ -29,7 +24,7 @@ if __name__ == "__main__":
     if sys.version_info.major > 2:
         raw_input = input
 
-    config_file = join(dirname(realpath(__file__)), "config.ini")
+    config_file = "config.ini"
     config = get_ini_conf(config_file)
 
     # Find cached module name

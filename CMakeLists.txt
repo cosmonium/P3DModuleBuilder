@@ -246,11 +246,11 @@ include_directories("${PYTHON_INCLUDE_DIRS}")
 
 # Run interrogate over the files
 execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" "-B" "scripts/interrogate.py" "${PROJECT_NAME}" "${IGATE_VERBOSE}"
+    COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/interrogate.py" "${PROJECT_NAME}" "${IGATE_VERBOSE}"
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors
     RESULT_VARIABLE return_code
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    WORKING_DIRECTORY "../..")
 
 if (NOT ("${IGATE_VERBOSE}" STREQUAL "0" ))
   message(STATUS "IGATE stdout = ${output}")
@@ -361,23 +361,24 @@ add_definitions("/DPB_MODULE=${PROJECT_NAME}")
 add_definitions("/DPB_CFG_MODULE=${PROJECT_NAME}")
 
 # Collect sources for compiling
-file(GLOB_RECURSE SOURCES source/*.cpp source/*.cxx source/*.I source/*.hpp source/*.h source/*.cc source/*.c)
-include_directories("source/")
+set(SOURCES_DIR "${CMAKE_BINARY_DIR}/../..")
+file(GLOB SOURCES ${SOURCES_DIR}/*.cpp ${SOURCES_DIR}/*.cxx ${SOURCES_DIR}/*.I ${SOURCES_DIR}/*.hpp ${SOURCES_DIR}/*.h ${SOURCES_DIR}/*.cc ${SOURCES_DIR}/*.c)
+include_directories(${SOURCES_DIR})
 set(SOURCES ${SOURCES_H} ${SOURCES})
 
 # Collect subdirs for compiling
-file(GLOB POSSIBLE_DIRS RELATIVE ${CMAKE_CURRENT_LIST_DIR} source/*)
-foreach(PDIR ${POSSIBLE_DIRS})
-  if (IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${PDIR})
-    include_directories("${PDIR}")
-    file(GLOB POSSIBLE_SUB_DIRS RELATIVE ${CMAKE_CURRENT_LIST_DIR}/${PDIR} ${PDIR}/*)
-    foreach(PSUBDIR ${POSSIBLE_SUB_DIRS})
-      if (IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${PDIR}/${PSUBDIR})
-        include_directories("${PDIR}/${PSUBDIR}")
-      endif()
-    endforeach()
-  endif()
-endforeach()
+#file(GLOB POSSIBLE_DIRS RELATIVE ${CMAKE_CURRENT_LIST_DIR} source/*)
+#foreach(PDIR ${POSSIBLE_DIRS})
+#  if (IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${PDIR})
+#    include_directories("${PDIR}")
+#    file(GLOB POSSIBLE_SUB_DIRS RELATIVE ${CMAKE_CURRENT_LIST_DIR}/${PDIR} ${PDIR}/*)
+#    foreach(PSUBDIR ${POSSIBLE_SUB_DIRS})
+#      if (IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${PDIR}/${PSUBDIR})
+#        include_directories("${PDIR}/${PSUBDIR}")
+#      endif()
+#    endforeach()
+#  endif()
+#endforeach()
 
 
 if ((EXISTS "${CMAKE_CURRENT_LIST_DIR}/additional_libs.cmake"))
@@ -413,8 +414,7 @@ endif()
 add_custom_command(
     TARGET ${PROJECT_NAME}
     POST_BUILD
-    COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/finalize.py" "${PROJECT_NAME}"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/finalize.py" "${PROJECT_NAME}")
 
 # Make shared library paths absolute on macOS
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -433,6 +433,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
       TARGET ${PROJECT_NAME}
       POST_BUILD
       COMMAND "install_name_tool" "-change" "@loader_path/../lib/lib${lib}.${PANDA_SHORT_VERSION}.dylib" "${PANDA_LIB_PATH}/lib${lib}.dylib" "${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
-      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+      WORKING_DIRECTORY "../..")
   endforeach()
 endif()

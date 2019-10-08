@@ -6,7 +6,7 @@ Runs the interrogate and interrogate_module commands from Panda3D.
 """
 
 import sys
-from os import listdir, chdir
+from os import listdir
 from os.path import join, isfile, isdir
 import re
 
@@ -44,7 +44,8 @@ def find_sources(base_dir):
                 continue # Skip protobuf
             sources.append(fpath)
         elif isdir(fpath):
-            sources += find_sources(fpath)
+            if f != 'build':
+                sources += find_sources(fpath)
     return sources
 
 
@@ -129,10 +130,6 @@ def interrogate_module():
     try_execute(*cmd)
 
 if __name__ == "__main__":
-
-    # Change into the source directory
-    source_dir = join(get_script_dir(), "../source/")
-    chdir(source_dir)
 
     interrogate()
     interrogate_module()
