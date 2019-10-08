@@ -330,6 +330,8 @@ else()
   # On mac
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_definitions("-Wno-deprecated-declarations")
+    add_definitions("-stdlib=libstdc++")
+    include_directories("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/usr/include/c++/4.2.1")
   endif()
 
   add_definitions("-pthread")
@@ -389,6 +391,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_library(${PROJECT_NAME} SHARED ${SOURCES})
   # Python doesn't detect .dylibs, so rename it .so
   set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+  target_link_options(${PROJECT_NAME} PUBLIC "-stdlib=libstdc++")
+  target_link_options(${PROJECT_NAME} PUBLIC "-Wl,-L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk//usr/lib/i686-apple-darwin11/4.2.1/")
 else()
   add_library(${PROJECT_NAME} MODULE ${SOURCES})
 endif()
