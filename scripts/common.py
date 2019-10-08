@@ -298,7 +298,8 @@ def get_panda_msvc_version():
     fatal_error("Unable to determine compiler")
 
 def get_panda_short_version():
-    return PandaSystem.getVersionString().replace(".0", "")
+    version = PandaSystem.getVersionString().split('.')
+    return version[0] + '.' + version[1]
 
 def have_eigen():
     """ Returns whether this panda3d build has eigen support """
