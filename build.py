@@ -18,6 +18,9 @@ if __name__ == "__main__":
         help="Optimize level, should match the one used for the Panda3D build",)
     parser.add_argument(
         "--clean", action="store_true", help="Forces a clean rebuild")
+    parser.add_argument(
+        '--macosx-sdk', type=str, default=None,
+        help="MacOS-X SDK to use, should match the one used for the Panda3D build",)
     args = parser.parse_args()
 
     # Python 2 compatibility

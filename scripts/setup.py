@@ -11,7 +11,7 @@ from .common import is_linux, join_abs, get_panda_lib_path, is_64_bit
 from .common import try_execute, get_script_dir, get_panda_msvc_version
 from .common import have_eigen, have_bullet, have_freetype, print_error
 from .common import is_macos, is_freebsd, is_installed_via_pip
-from .common import get_win_thirdparty_dir
+from .common import get_win_thirdparty_dir, get_macos_sdk_path
 
 
 def make_output_dir(clean=False):
@@ -91,6 +91,17 @@ def run_cmake(config, args):
     elif is_macos():
         # Panda is 64-bit only on macOS.
         cmake_args += ["-DCMAKE_CL_64:STRING=1"]
+        # Specify MacOSX SDK to use
+        macosx_sdk = None
+        if args.macosx_sdk is None:
+            macosx_sdk = config.get('macosx_sdk', None)
+        else:
+            macosx_sdk = args.macosx_sdk
+        if macosx_sdk is not None:
+            macosx_sdk_path = get_macos_sdk_path(macosx_sdk)
+            cmake_args += ["-DCMAKE_CL_64:STRING=1"]
+            cmake_args += ["-DMACOSX_SDK:STRING=%s" % macosx_sdk]
+            cmake_args += ["-DMACOSX_SDK_PATH:STRING=%s" % macosx_sdk_path]
 
     # Specify python version, once as integer, once seperated by a dot
     pyver = "{}{}".format(sys.version_info.major, sys.version_info.minor)

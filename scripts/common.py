@@ -11,8 +11,8 @@ import sys
 import subprocess
 import platform
 
-from os.path import dirname, realpath, join, isdir, isfile
-from os import makedirs
+from os.path import dirname, realpath, join, isdir, isfile, exists
+from os import makedirs, popen
 from sys import argv, stdout, stderr, exit
 from panda3d.core import PandaSystem, Filename, ExecutionEnvironment
 
@@ -343,6 +343,26 @@ def get_win_thirdparty_dir():
                  "a prebuilt version or by compiling it yourself.")
     return first_existing_path(possible_dirs, base_dir=get_panda_sdk_path(), on_error=error_msg)
 
+def get_macos_sdk_path(osxtarget = None):
+    macos_sdk = None
+    sdkname = "MacOSX" + osxtarget
+    if exists("/Developer/SDKs/%su.sdk" % sdkname):
+        macos_sdk = "/Developer/SDKs/%su.sdk" % sdkname
+    elif exists("/Developer/SDKs/%s.sdk" % sdkname):
+        macos_sdk = "/Developer/SDKs/%s.sdk" % sdkname
+    elif exists("/Developer/SDKs/%s.0.sdk" % sdkname):
+        macos_sdk = "/Developer/SDKs/%s.0.sdk" % sdkname
+    elif exists("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/%s.sdk" % sdkname):
+        macos_sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/%s.sdk" % sdkname
+    else:
+        handle = popen("xcode-select -print-path")
+        result = handle.read().strip().rstrip('/')
+        handle.close()
+        if exists("%s/Platforms/MacOSX.platform/Developer/SDKs/%s.sdk" % (result, sdkname)):
+            macos_sdk = "%s/Platforms/MacOSX.platform/Developer/SDKs/%s.sdk" % (result, sdkname)
+        else:
+            print("Couldn't find any MacOSX SDK for OSX version %s!" % sdkname)
+    return macos_sdk
 
 if __name__ == "__main__":
 
