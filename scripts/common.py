@@ -49,6 +49,42 @@ def get_output_name():
         sys.version_info.minor, compiler_suffix)
 
 
+def get_target_name(module_name):
+    """ Return the target name, depending on the Python version and platform """
+    abi_version = '{0}{1}'.format(*sys.version_info)
+    abi_flags = ''
+    if sys.version_info < (3, 8):
+        abi_flags += 'm'
+
+    if is_windows():
+
+        # Check the different Configurations
+        if sys.version_info < (3, 0):
+            target_name = module_name + '.win_amd64'
+        else:
+            target_name = module_name + '.cp{0}-win_amd64'.format(abi_version)
+
+    elif is_linux():
+        if sys.version_info < (3, 0):
+            target_name = module_name + ".x86_64-linux-gnu"
+        else:
+            target_name = module_name + ".cpython-{0}{1}-x86_64-linux-gnu".format(abi_version, abi_flags)
+
+    elif is_macos():
+        if sys.version_info < (3, 0):
+            target_name = module_name + '.darwin'
+        else:
+            target_name = module_name + '.cpython-{0}{1}-darwin'.format(abi_version, abi_flags)
+
+    else:
+        if sys.version_info < (3, 0):
+            target_name = module_name
+        else:
+            target_name = module_name + '.cpython-{0}{1}'.format(abi_version, abi_flags)
+
+    return target_name
+
+
 def get_script_dir():
     """ Returns the name of the directory the scripts are located in """
     return dirname(realpath(__file__))

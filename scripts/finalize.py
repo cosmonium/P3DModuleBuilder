@@ -6,7 +6,7 @@ import sys
 
 from shutil import copyfile
 from os.path import isfile, join
-from common import is_windows, is_linux, is_macos, fatal_error, get_script_dir
+from common import is_windows, fatal_error
 
 
 def find_binary():
@@ -16,42 +16,17 @@ def find_binary():
     pdb_file = None
     possible_files = []
 
-    abi_version = '{0}{1}'.format(*sys.version_info)
-    abi_flags = ''
-    if sys.version_info < (3, 8):
-        abi_flags += 'm'
-
     if is_windows():
 
         # Check the different Configurations
         configurations = ["RelWithDebInfo", "Release"]
-        if sys.version_info < (3, 0):
-            target_file = MODULE_NAME + '.win_amd64.pyd'
-        else:
-            target_file = MODULE_NAME + '.cp{0}-win_amd64.pyd'.format(abi_version)
+        target_file = MODULE_NAME + '.pyd'
 
         for config in configurations:
             possible_files.append(join(config, MODULE_NAME + ".dll"))
 
-    elif is_linux():
-        if sys.version_info < (3, 0):
-            target_file = MODULE_NAME + ".x86_64-linux-gnu.so"
-        else:
-            target_file = MODULE_NAME + ".cpython-{0}{1}-x86_64-linux-gnu.so".format(abi_version, abi_flags)
-        possible_files.append( MODULE_NAME + ".so")
-
-    elif is_macos():
-        if sys.version_info < (3, 0):
-            target_file = MODULE_NAME + '.darwin.so'.format(abi_version, abi_flags)
-        else:
-            target_file = MODULE_NAME + '.cpython-{0}{1}-darwin.so'.format(abi_version, abi_flags)
-        possible_files.append( MODULE_NAME + ".so")
-
     else:
-        if sys.version_info < (3, 0):
-            target_file = MODULE_NAME + '.so'.format(abi_version, abi_flags)
-        else:
-            target_file = MODULE_NAME + '.cpython-{0}{1}.so'.format(abi_version, abi_flags)
+        target_file = MODULE_NAME + ".so"
         possible_files.append( MODULE_NAME + ".so")
 
     for file in possible_files:
@@ -62,8 +37,7 @@ def find_binary():
             if isfile(pdb_name):
                 pdb_file = pdb_name
 
-    target_pdb_file = MODULE_NAME + ".pdb"
-    return source_file, pdb_file, target_file, target_pdb_file
+    return source_file, pdb_file, target_file
 
 if __name__ == "__main__":
 
@@ -71,7 +45,8 @@ if __name__ == "__main__":
         fatal_error("Usage: finalize.py <module-name>")
 
     MODULE_NAME = sys.argv[1]
-    source_file, pdb_file, target_file, target_pdb_file = find_binary()
+    source_file, pdb_file, target_file = find_binary()
+    target_pdb_file = MODULE_NAME + ".pdb"
 
     if source_file:
         dest_folder = "../../"

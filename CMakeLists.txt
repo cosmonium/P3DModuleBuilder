@@ -246,7 +246,7 @@ include_directories("${PYTHON_INCLUDE_DIRS}")
 
 # Run interrogate over the files
 execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/interrogate.py" "${PROJECT_NAME}" "${IGATE_VERBOSE}"
+    COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/interrogate.py" "${SHORT_PROJECT_NAME}" "${IGATE_VERBOSE}"
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors
     RESULT_VARIABLE return_code

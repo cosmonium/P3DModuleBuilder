@@ -11,7 +11,7 @@ from .common import is_linux, join_abs, get_panda_lib_path, is_64_bit
 from .common import try_execute, get_script_dir, get_panda_msvc_version
 from .common import have_eigen, have_bullet, have_freetype, print_error
 from .common import is_macos, is_freebsd, is_installed_via_pip
-from .common import get_win_thirdparty_dir, get_macos_sdk_path
+from .common import get_win_thirdparty_dir, get_target_name
 
 
 def make_output_dir(clean=False):
@@ -64,7 +64,8 @@ def run_cmake(config, args):
 
     cmake_args = ["-DCMAKE_BUILD_TYPE=" + configuration]
     cmake_args += ["-DPYTHON_EXECUTABLE:STRING=" + sys.executable]
-    cmake_args += ["-DPROJECT_NAME:STRING=" + config["module_name"]]
+    cmake_args += ["-DSHORT_PROJECT_NAME:STRING=" + config["module_name"]]
+    cmake_args += ["-DPROJECT_NAME:STRING=" + get_target_name(config["module_name"])]
 
     lib_prefix = "lib" if is_windows() else ""
 
