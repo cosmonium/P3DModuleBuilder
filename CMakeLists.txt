@@ -330,14 +330,15 @@ else()
   # On mac
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_definitions("-Wno-deprecated-declarations")
-    if (NOT ${MACOSX_SDK} STREQUAL "")
-      add_definitions("-isysroot ${MACOSX_SDK_PATH}")
-      add_definitions("-mmacosx-version-min=${MACOSX_SDK}")
-    endif()
   endif()
 
   add_definitions("-pthread")
+#TODO: Make this more robust...
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  add_definitions("-std=gnu++11")
+else()
   add_definitions("-std=c++11")
+endif()
 
   # No exceptions
   add_definitions("-fno-exceptions")
@@ -394,10 +395,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_library(${PROJECT_NAME} SHARED ${SOURCES})
   # Python doesn't detect .dylibs, so rename it .so
   set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
-  if (NOT ${MACOSX_SDK} STREQUAL "")
-    target_link_options(${PROJECT_NAME} PUBLIC "-isysroot${MACOSX_SDK_PATH}")
-    target_link_options(${PROJECT_NAME} PUBLIC "-mmacosx-version-min=${MACOSX_SDK}")
-  endif()
 else()
   add_library(${PROJECT_NAME} MODULE ${SOURCES})
 endif()
