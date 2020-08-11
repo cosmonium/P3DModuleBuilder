@@ -112,6 +112,12 @@ def run_cmake(config, args):
     if is_linux() or is_freebsd() or is_macos():
         cmake_args += ["-DPYTHONVERDOT:STRING=" + pyver_dot]
 
+    if args.python_libdir is not None:
+        cmake_args += ["-DPYTHON_LIBRARY:STRING=" + args.python_libdir]
+
+    if args.python_incdir is not None:
+        cmake_args += ["-DPYTHON_INCLUDE_DIR:STRING=" + args.python_incdir]
+
     # Thirdparty directory
     if is_windows():
         cmake_args += ["-DTHIRDPARTY_WIN_DIR=" + get_win_thirdparty_dir()]

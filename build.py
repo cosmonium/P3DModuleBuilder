@@ -24,6 +24,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '--macosx-sdk', type=str, default=None,
         help="MacOS-X SDK to use, should match the one used for the Panda3D build",)
+    parser.add_argument(
+        '--python-libdir', type=str, default=None,
+        help="Path to the Python lib files",)
+    parser.add_argument(
+        '--python-incdir', type=str, default=None,
+        help="Path to the Python include files",)
     args = parser.parse_args()
 
     # Python 2 compatibility
