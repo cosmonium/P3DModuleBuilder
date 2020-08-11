@@ -160,7 +160,7 @@ def run_cmake(config, args):
 
     cmake_args += ["-DOPTIMIZE=" + str(optimize)]
 
-    output = try_execute("cmake", join_abs(get_script_dir(), ".."), *cmake_args, error_formatter=handle_cmake_error)
+    output = try_execute(args.cmake, join_abs(get_script_dir(), ".."), *cmake_args, error_formatter=handle_cmake_error)
 
 
 def run_cmake_build(config, args):
@@ -181,4 +181,4 @@ def run_cmake_build(config, args):
         # Specifying no cpu count makes MSBuild use all available ones
         core_option = "/m"
 
-    try_execute("cmake", "--build", ".", "--config", configuration, "--", core_option)
+    try_execute(args.cmake, "--build", ".", "--config", configuration, "--", core_option)

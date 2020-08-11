@@ -19,6 +19,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--clean", action="store_true", help="Forces a clean rebuild")
     parser.add_argument(
+        "--cmake", type=str, default='cmake',
+        help="Path to the version of CMake to use")
+    parser.add_argument(
         '--macosx-sdk', type=str, default=None,
         help="MacOS-X SDK to use, should match the one used for the Panda3D build",)
     args = parser.parse_args()
