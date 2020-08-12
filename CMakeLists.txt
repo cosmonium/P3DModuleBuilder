@@ -7,6 +7,16 @@ project (${PROJECT_NAME})
 # Project configuration
 set(CMAKE_BUILD_TYPE "Release")
 
+if(UNIX AND NOT APPLE)
+  set(LINUX TRUE)
+endif()
+
+if(LINUX)
+  #set(CMAKE_LINK_WHAT_YOU_USE FALSE)
+  # TODO: The config above does not work, Why ?
+  set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--as-needed")
+endif()
+
 # Libraries and options set by the module builder
 set(HAVE_LIB_EIGEN CACHE BOOL TRUE)
 set(HAVE_LIB_BULLET CACHE BOOL FALSE)
@@ -403,12 +413,12 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
 # Add the required libraries
-target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES} ${PANDA_LIBRARIES} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PANDA_LIBRARIES} ${LIBRARIES})
 
 if(WIN32)
 #   # Eventually link core.pyd?
 else()
-  set(CMAKE_MODULE_LINKER_FLAGS ${PANDA_CORE_PATH})
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${PANDA_CORE_PATH}")
 endif()
 
 # After building, copy the file to the current directory
