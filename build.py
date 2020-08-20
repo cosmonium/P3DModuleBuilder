@@ -25,6 +25,9 @@ if __name__ == "__main__":
         '--macosx-sdk', type=str, default=None,
         help="MacOS-X SDK to use, should match the one used for the Panda3D build",)
     parser.add_argument(
+        '--windows-sdk', type=str, default=None,
+        help="Windows-X SDK to use",)
+    parser.add_argument(
         '--python-libdir', type=str, default=None,
         help="Path to the Python lib files",)
     parser.add_argument(

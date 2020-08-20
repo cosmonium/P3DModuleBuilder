@@ -89,6 +89,14 @@ def run_cmake(config, args):
         # Specify 64-bit compiler when using a 64 bit panda sdk build
         bit_suffix = " Win64" if is_64_bit() else ""
         cmake_args += ["-G" + get_panda_msvc_version().cmake_str + bit_suffix]
+        # Specify Windows SDK to use
+        windows_sdk = None
+        if args.windows_sdk is None:
+            windows_sdk = config.get('windows_sdk', None)
+        else:
+            windows_sdk = args.windows_sdk
+        if windows_sdk is not None:
+            cmake_args += ["-DCMAKE_SYSTEM_VERSION:STRING=%s" % windows_sdk]
     elif is_macos():
         # Panda is 64-bit only on macOS.
         cmake_args += ["-DCMAKE_CL_64:STRING=1"]
