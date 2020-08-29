@@ -415,6 +415,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 # Add the required libraries
 target_link_libraries(${PROJECT_NAME} ${PANDA_LIBRARIES} ${LIBRARIES})
 
+if (APPLE OR WIN32)
+  target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+endif()
+
 if(WIN32)
 #   # Eventually link core.pyd?
 else()
