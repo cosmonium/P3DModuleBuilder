@@ -33,6 +33,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--python-incdir', type=str, default=None,
         help="Path to the Python include files",)
+    parser.add_argument(
+        '--use-sdk-path', action="store_true",
+        help="MacOS: Use the installed SDK path for the linked libraries",)
     args = parser.parse_args()
 
     # Python 2 compatibility
