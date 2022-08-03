@@ -33,7 +33,29 @@ MSVC_VERSIONS = [
     MSVCVersion(1600, "Visual Studio 10 2010", "vc100"),
     MSVCVersion(1700, "Visual Studio 11 2012", "vc110"),
     MSVCVersion(1800, "Visual Studio 12 2013", "vc120"),
-    MSVCVersion(1900, "Visual Studio 14 2015", "vc140")
+    MSVCVersion(1900, "Visual Studio 14 2015", "vc140"),
+    
+    MSVCVersion(1910, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1911, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1912, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1913, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1914, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1915, "Visual Studio 15 2017", "vc141"),
+    MSVCVersion(1916, "Visual Studio 15 2017", "vc141"),
+    
+    MSVCVersion(1920, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1921, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1922, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1923, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1924, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1925, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1926, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1927, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1928, "Visual Studio 16 2019", "vc142"),
+    MSVCVersion(1929, "Visual Studio 16 2019", "vc142"),
+
+    MSVCVersion(1930, "Visual Studio 17 2022", "vc143"),
+    MSVCVersion(1931, "Visual Studio 17 2022", "vc143")
 ]
 
 def get_output_name():
@@ -325,7 +347,7 @@ def get_panda_msvc_version():
             return msvc_version
 
     print("FATAL ERROR: Unable to detect visual studio version of your Panda3D Build!", file=sys.stderr)
-    print("Unkown compiler string was: '" + compiler + "'", file=sys.stderr)
+    print("Unknown compiler string was: '" + compiler + "'", file=sys.stderr)
     print("", file=sys.stderr)
     print("Known visual studio versions are:", file=sys.stderr)
     for msvc_version in MSVC_VERSIONS:
@@ -431,4 +453,4 @@ if __name__ == "__main__":
         debug_out("Compiler:", get_compiler_name())
 
     else:
-        fatal_error("Unkown options: ", ' '.join(argv[1:]))
+        fatal_error("Unknown options: ", ' '.join(argv[1:]))
