@@ -125,7 +125,7 @@ def run_cmake(config, args):
         cmake_args += ["-DPYTHON_LIBRARY:STRING=" + args.python_libdir]
 
     if args.python_incdir is not None:
-        cmake_args += ["-DPYTHON_INCLUDE_DIR:STRING=" + args.python_incdir]
+        cmake_args += ["-DPYTHON_INCLUDE_DIRS:STRING=" + args.python_incdir]
 
     # Thirdparty directory
     if is_windows():
