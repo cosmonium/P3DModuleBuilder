@@ -170,7 +170,10 @@ if (WIN32)
 else()
   set(PYTHONVERDOT CACHE STRING "2.7")
   set(Python_ADDITIONAL_VERSIONS ${PYTHONVERDOT})
-  find_package(PythonLibs REQUIRED)
+
+  if (APPLE OR "${PYTHON_INCLUDE_DIRS}" STREQUAL "")
+    find_package(PythonLibs REQUIRED)
+  endif()
 
   # [LIB] Bullet
   if (HAVE_LIB_BULLET)
