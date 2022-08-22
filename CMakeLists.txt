@@ -4,6 +4,8 @@ set(PROJECT_NAME CACHE STRING "Module")
 cmake_minimum_required (VERSION 2.6)
 project (${PROJECT_NAME})
 
+include (FindPackageHandleStandardArgs)
+
 # Project configuration
 set(CMAKE_BUILD_TYPE "Release")
 
