@@ -28,7 +28,7 @@ set(IGATE_VERBOSE CACHE STRING "0")
 set(INTERROGATE_LIB CACHE STRING "p3interrogatedb")
 set(PYTHON_EXECUTABLE CACHE STRING "python")
 set(THIRDPARTY_WIN_DIR CACHE STRING "")
-set(USE_SDK_PATH CACHE BOOL FALSE)
+set(USE_SDK_PATH CACHE BOOL TRUE)
 
 
 # --- User controllable variables ---
@@ -451,6 +451,14 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND "install_name_tool" "-change" "@loader_path/../lib/lib${lib}.${PANDA_SHORT_VERSION}.dylib" "${PANDA_LIB_PATH}/lib${lib}.dylib" "${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        WORKING_DIRECTORY "../..")
+    endforeach()
+  else()
+    foreach(lib ${REQ_LIBRARIES})
+      add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND "install_name_tool" "-change" "@loader_path/../lib/lib${lib}.${PANDA_SHORT_VERSION}.dylib" "@loader_path/../Frameworks/lib${lib}.${PANDA_SHORT_VERSION}.dylib" "${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
         WORKING_DIRECTORY "../..")
     endforeach()
   endif()

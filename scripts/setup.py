@@ -110,6 +110,8 @@ def run_cmake(config, args):
             cmake_args += ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=%s" % macosx_sdk]
         if args.use_sdk_path:
             cmake_args += ["-DUSE_SDK_PATH:BOOL=TRUE"]
+        else:
+            cmake_args += ["-DUSE_SDK_PATH:BOOL=FALSE"]
 
     # Specify python version, once as integer, once seperated by a dot
     pyver = "{}{}".format(sys.version_info.major, sys.version_info.minor)
