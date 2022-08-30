@@ -57,7 +57,7 @@ if __name__ == "__main__":
             del config[outdated_param]
 
     # Write back config
-    write_ini_conf(config, config_file)
+    # write_ini_conf(config, config_file)
 
     # Just execute the build script
     make_output_dir(clean=args.clean)
