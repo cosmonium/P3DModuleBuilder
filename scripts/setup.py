@@ -74,17 +74,6 @@ def run_cmake(config, args):
                     "no headers are included, we can't build against this version. Please install the "
                     "Panda3D SDK from http://www.panda3d.org/download.php?sdk")
 
-    # Check for the right interrogate lib
-    if PandaSystem.get_major_version() > 1 or PandaSystem.get_minor_version() > 9:
-        cmake_args += ["-DINTERROGATE_LIB:STRING=" + lib_prefix + "p3interrogatedb"]
-    else: 
-
-        # Buildbot versions do not have the core lib, instead try using libpanda
-        if not isfile(join_abs(get_panda_lib_path(), "core.lib")):
-            cmake_args += ["-DINTERROGATE_LIB:STRING=" + lib_prefix + "panda"]
-        else:
-            cmake_args += ["-DINTERROGATE_LIB:STRING=core"]
-
     if is_windows():
         cmake_args += ["-G" + get_panda_msvc_version().cmake_str]
         # Specify 64-bit compiler when using a 64 bit panda sdk build

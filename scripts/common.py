@@ -168,22 +168,6 @@ def find_in_sdk(folder, filename, on_error=""):
     """ Finds the required folder in the sdk, requiring that it contains the given filename """
     return first_existing_path([folder], required_file=filename, base_dir=get_panda_sdk_path(), on_error=on_error)
 
-def get_panda_bin_path():
-    """ Returns the path to the panda3d binaries """
-    if is_windows():
-        return find_in_sdk("bin", "interrogate.exe", on_error="Failed to find binary path")
-    elif is_linux() or is_freebsd():
-        libpath = get_panda_lib_path()
-        search = [
-            join(libpath, "../bin"),
-            "/usr/bin",
-            "/usr/local/bin",
-        ]
-        return first_existing_path(search, "interrogate")
-    elif is_macos():
-        return find_in_sdk("bin", "interrogate", on_error="Failed to find binary path")
-    raise NotImplementedError("Unsupported OS")
-
 
 def get_panda_lib_path():
     """ Returns the path to the panda3d libraries """

@@ -11,7 +11,7 @@ from os.path import join, isfile, isdir
 import re
 
 from panda3d.core import PandaSystem
-from common import debug_out, get_panda_bin_path, get_panda_include_path
+from common import debug_out, get_panda_include_path
 from common import get_compiler_name, is_64_bit, try_execute, join_abs, get_script_dir
 
 if len(sys.argv) != 3:
@@ -56,7 +56,7 @@ def interrogate():
     all_sources = find_sources(".")
 
     # Create the interrogate command
-    cmd = [join(get_panda_bin_path(), 'interrogate')]
+    cmd = ['interrogate']
 
     if VERBOSE_LVL == 1:
         cmd += ["-v"]
@@ -115,7 +115,7 @@ def interrogate_module():
     """ Runs the interrogate module command """
 
     # Create module command
-    cmd = [join_abs(get_panda_bin_path(), "interrogate_module")]
+    cmd = ["interrogate_module"]
     cmd += ["-python-native"]
 
     if PandaSystem.get_major_version() > 1 or PandaSystem.get_minor_version() > 9:
