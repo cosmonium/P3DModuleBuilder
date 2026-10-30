@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Important: import panda3d as the very first library - otherwise it crashes
 import panda3d.core  # noqa
@@ -38,16 +38,12 @@ if __name__ == "__main__":
         help="MacOS: Use the installed SDK path for the linked libraries",)
     args = parser.parse_args()
 
-    # Python 2 compatibility
-    if sys.version_info.major > 2:
-        raw_input = input
-
     config_file = "config.ini"
     config = get_ini_conf(config_file)
 
     # Find cached module name
     if "module_name" not in config or not config["module_name"]:
-        module_name = str(raw_input("Enter a module name: "))
+        module_name = input("Enter a module name: ")
         config["module_name"] = module_name.strip()
 
     # Check for outdated parameters

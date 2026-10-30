@@ -350,9 +350,9 @@ else()
   add_definitions("-pthread")
 #TODO: Make this more robust...
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  add_definitions("-std=gnu++11")
+  add_definitions("-std=gnu++17")
 else()
-  add_definitions("-std=c++11")
+  add_definitions("-std=c++17")
 endif()
 
   # No exceptions

@@ -4,8 +4,6 @@ Common functions for the build system
 
 """
 
-from __future__ import print_function
-
 import locale
 import sys
 import subprocess
@@ -72,30 +70,16 @@ def get_target_name(module_name):
         abi_flags += 'm'
 
     if is_windows():
-
-        # Check the different Configurations
-        if sys.version_info < (3, 0):
-            target_name = module_name + '.win_amd64'
-        else:
-            target_name = module_name + '.cp{0}-win_amd64'.format(abi_version)
+        target_name = module_name + '.cp{0}-win_amd64'.format(abi_version)
 
     elif is_linux():
-        if sys.version_info < (3, 0):
-            target_name = module_name + ".x86_64-linux-gnu"
-        else:
-            target_name = module_name + ".cpython-{0}{1}-x86_64-linux-gnu".format(abi_version, abi_flags)
+        target_name = module_name + ".cpython-{0}{1}-x86_64-linux-gnu".format(abi_version, abi_flags)
 
     elif is_macos():
-        if sys.version_info < (3, 0):
-            target_name = module_name + '.darwin'
-        else:
-            target_name = module_name + '.cpython-{0}{1}-darwin'.format(abi_version, abi_flags)
+        target_name = module_name + '.cpython-{0}{1}-darwin'.format(abi_version, abi_flags)
 
     else:
-        if sys.version_info < (3, 0):
-            target_name = module_name
-        else:
-            target_name = module_name + '.cpython-{0}{1}'.format(abi_version, abi_flags)
+        target_name = module_name + '.cpython-{0}{1}'.format(abi_version, abi_flags)
 
     return target_name
 
@@ -233,13 +217,10 @@ def get_compiler_name():
     return compiler_name.upper()
 
 def decode_str(s):
-    if sys.version_info.major >= 3:
-        if isinstance(s, str):
-            return s.encode("ascii", "ignore").decode("ascii", "ignore")
-        else:
-            return str(s)
+    if isinstance(s, str):
+        return s.encode("ascii", "ignore").decode("ascii", "ignore")
     else:
-        return s.encode("ascii", "ignore")
+        return str(s)
 
 
 def fatal_error(*args):
