@@ -53,6 +53,24 @@ set(CMAKE_CXX_FLAGS_MINSIZEREL "")
 
 set(LIBRARIES "")
 
+# Create the module target up-front, without sources: the actual source
+# list is only known once interrogate has generated its wrapper files.
+# Creating the target now lets the rest of this file attach
+# include directories, definitions and link libraries directly to it with
+# target_* commands instead of the whole-directory add_definitions() and
+# include_directories() commands.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  # macOS won't let us link a .so with another .so, so make a .dylib
+  add_library(${PROJECT_NAME} SHARED)
+  # Python doesn't detect .dylibs, so rename it .so
+  set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+else()
+  add_library(${PROJECT_NAME} MODULE)
+endif()
+
+# Don't add lib prefix on Linux
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+
 # Try Panda3D's own CMake package first.
 set(PANDA3D_CMAKE_PACKAGE_FOUND FALSE)
 if (USE_PANDA3D_CMAKE_PACKAGE)
@@ -135,8 +153,8 @@ if (WIN32)
       message(FATAL_ERROR "This module requires the bullet library, but your Panda3D Build was copmiled without bullet support! Use --use-bullet when compiling.")
     endif()
 
-    include_directories("${THIRDPARTY_DIR}/bullet/include/")
-    link_directories("${THIRDPARTY_DIR}/bullet/lib/")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/bullet/include/")
+    target_link_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/bullet/lib/")
 
     if(EXISTS "${THIRDPARTY_DIR}/bullet/lib/LinearMath_x64.lib")
       set(LIBRARIES "${LIBRARIES};LinearMath_x64;BulletCollision_x64;BulletDynamics_x64;BulletSoftBody_x64")
@@ -147,18 +165,18 @@ if (WIN32)
 
   # [LIB] Eigen 3
   if (HAVE_LIB_EIGEN)
-    include_directories("${THIRDPARTY_DIR}/eigen/include")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/eigen/include")
 
     # Eigen build flags (sync with Panda)
     if (HAVE_LIB_EIGEN)
-      add_definitions("/DEIGEN_MPL2_ONLY=")
+      target_compile_definitions(${PROJECT_NAME} PRIVATE "EIGEN_MPL2_ONLY=")
       if ((OPTIMIZE STREQUAL "3") OR (OPTIMIZE STREQUAL "4"))
-        add_definitions("/DEIGEN_NO_DEBUG=")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE "EIGEN_NO_DEBUG=")
         if (MSVC)
           # Squeeze out a bit more performance on MSVC builds...
           # Only do this if EIGEN_NO_DEBUG is also set, otherwise it
           # will turn them into runtime assertions.
-          add_definitions("/DEIGEN_NO_STATIC_ASSERT=")
+          target_compile_definitions(${PROJECT_NAME} PRIVATE "EIGEN_NO_STATIC_ASSERT=")
         endif()
       endif()
     endif()
@@ -166,9 +184,9 @@ if (WIN32)
 
   # [LIB] Freetype
   if (HAVE_LIB_FREETYPE)
-    include_directories("${THIRDPARTY_DIR}/freetype/include")
-    include_directories("${THIRDPARTY_DIR}/freetype/include/freetype2")
-    link_directories("${THIRDPARTY_DIR}/freetype/lib")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/freetype/include")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/freetype/include/freetype2")
+    target_link_directories(${PROJECT_NAME} PRIVATE "${THIRDPARTY_DIR}/freetype/lib")
     set(LIBRARIES "${LIBRARIES};freetype")
   endif()
 
@@ -186,7 +204,7 @@ if (WIN32)
     if(HAVE_LIB_BULLET)
       set(PANDA_LIBRARIES "libpandabullet;${PANDA_LIBRARIES}")
     endif()
-    link_directories("${PANDA_LIBRARY_DIRS}")
+    target_link_directories(${PROJECT_NAME} PRIVATE "${PANDA_LIBRARY_DIRS}")
   endif()
 
 else()
@@ -200,23 +218,23 @@ else()
   # [LIB] Bullet
   if (HAVE_LIB_BULLET)
     find_package(Bullet REQUIRED)
-    include_directories(${BULLET_INCLUDE_DIRS})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${BULLET_INCLUDE_DIRS})
     set(LIBRARIES "${LIBRARIES};${BULLET_LIBRARIES}")
   endif()
 
   # [LIB] Eigen 3
   if (HAVE_LIB_EIGEN)
     if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-      include_directories(BEFORE "/usr/local/include/eigen3/")
+      target_include_directories(${PROJECT_NAME} BEFORE PRIVATE "/usr/local/include/eigen3/")
     else()
-      include_directories(BEFORE "/usr/include/eigen3/")
+      target_include_directories(${PROJECT_NAME} BEFORE PRIVATE "/usr/include/eigen3/")
     endif()
 
     # Eigen build flags (sync with Panda)
     if (HAVE_LIB_EIGEN)
-      add_definitions("/DEIGEN_MPL2_ONLY=")
+      target_compile_definitions(${PROJECT_NAME} PRIVATE "EIGEN_MPL2_ONLY=")
       if ((OPTIMIZE STREQUAL "3") OR (OPTIMIZE STREQUAL "4"))
-        add_definitions("/DEIGEN_NO_DEBUG=")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE "EIGEN_NO_DEBUG=")
       endif()
     endif()
   endif()
@@ -224,7 +242,7 @@ else()
   # [LIB] Freetype
   if(HAVE_LIB_FREETYPE)
     find_package(Freetype REQUIRED)
-    include_directories(${FREETYPE_INCLUDE_DIRS})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${FREETYPE_INCLUDE_DIRS})
     set(LIBRARIES "${LIBRARIES};${FREETYPE_LIBRARIES}")
   endif()
 
@@ -282,9 +300,9 @@ execute_process(
 
 # Link panda includes / libraries
 if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
-  include_directories("${PANDA_INCLUDE_DIR}")
+  target_include_directories(${PROJECT_NAME} PRIVATE "${PANDA_INCLUDE_DIR}")
 endif()
-include_directories("${PYTHON_INCLUDE_DIRS}")
+target_include_directories(${PROJECT_NAME} PRIVATE "${PYTHON_INCLUDE_DIRS}")
 
 # Resolve which libraries/targets to link the module against for Panda3D
 # itself, depending on which of the two paths above was used to find it.
@@ -320,62 +338,62 @@ if (MSVC)
   # This matches the makepanda options
 
   if (IS_64_BIT)
-    add_definitions("/favor:blend /DWIN64_VC /DWIN64 /bigobj")
+    target_compile_options(${PROJECT_NAME} PRIVATE /favor:blend /DWIN64_VC /DWIN64 /bigobj)
   endif()
 
-  add_definitions("/wd4996 /wd4275 /wd4267 /wd4101 /wd4273")
+  target_compile_options(${PROJECT_NAME} PRIVATE /wd4996 /wd4275 /wd4267 /wd4101 /wd4273)
 
   if (TOUCHINPUT_ENABLED)
     # If touchinput is enabled
-    add_definitions("/DWINVER=0x601")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "WINVER=0x601")
   else()
     # If touchinput is disabled
-    # add_definitions("/DWINVER=0x501")
+    # target_compile_definitions(${PROJECT_NAME} PRIVATE "WINVER=0x501")
   endif()
 
   if(IS_32_BIT AND ENABLE_SSE2)
     # If SSE is enabled
-    add_definitions("/arch:SSE2")
+    target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
   endif()
 
   # Different optimization settings
   if (OPTIMIZE STREQUAL "1")
-    add_definitions("/MDd /Zi /RTCs /GS")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MDd /Zi /RTCs /GS)
   elseif(OPTIMIZE STREQUAL "2")
-    add_definitions("/MDd /Zi")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MDd /Zi)
   elseif(OPTIMIZE STREQUAL "3")
-    add_definitions("/MD /Zi /GS- /O2 /Ob2 /Oi /Ot /fp:fast")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MD /Zi /GS- /O2 /Ob2 /Oi /Ot /fp:fast)
   elseif(OPTIMIZE STREQUAL "4")
-    add_definitions("/MD /Zi /GS- /Ox /Ob2 /Oi /Ot /fp:fast /DFORCE_INLINING /DNDEBUG /GL /LTCG")
-    add_definitions("/Oy /Zp16")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MD /Zi /GS- /Ox /Ob2 /Oi /Ot /fp:fast /DFORCE_INLINING /DNDEBUG /GL /LTCG)
+    target_compile_options(${PROJECT_NAME} PRIVATE /Oy /Zp16)
   else()
     message(FATAL_ERROR "Invalid optimize value! Was: '${OPTIMIZE}'")
   endif()
 
-  add_definitions("/Zm300 /DWIN32_VC /DWIN32")
+  target_compile_options(${PROJECT_NAME} PRIVATE /Zm300 /DWIN32_VC /DWIN32)
 
   # No exceptions
-  add_definitions("/D_HAS_EXCEPTIONS=0")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE "_HAS_EXCEPTIONS=0")
 
   # No RTTI
-  add_definitions("/GR-")
+  target_compile_options(${PROJECT_NAME} PRIVATE /GR-)
 
   # Warning level 3 should be enough
-  add_definitions("/W3")
+  target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 
   # Special case for 32 bit
   if(IS_32_BIT)
-    add_definitions("/machine:x86")
+    target_compile_options(${PROJECT_NAME} PRIVATE /machine:x86)
   endif()
 
   # Use multi-core compilation
-  add_definitions("/MP")
-  # add_definitions("/GM-")
+  target_compile_options(${PROJECT_NAME} PRIVATE /MP)
+  # target_compile_options(${PROJECT_NAME} PRIVATE /GM-)
 
   if (CXX_STANDARD STREQUAL "11")
     # MSVC has no /std: switch for C++11; it always builds at least C++14.
   else()
-    add_definitions("/std:c++${CXX_STANDARD}")
+    target_compile_options(${PROJECT_NAME} PRIVATE /std:c++${CXX_STANDARD})
   endif()
 
 else()
@@ -383,35 +401,38 @@ else()
   set(CMAKE_MACOSX_RPATH TRUE)
   # Assuming GCC here
 
-  add_definitions("-ftemplate-depth-70 -fPIC -c")
+  target_compile_options(${PROJECT_NAME} PRIVATE -ftemplate-depth-70 -fPIC -c)
 
   # On mac
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_definitions("-Wno-deprecated-declarations")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-declarations)
   endif()
 
-  add_definitions("-pthread")
+  target_compile_options(${PROJECT_NAME} PRIVATE -pthread)
 
   # TODO: Make this more robust...
   if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_definitions("-std=gnu++${CXX_STANDARD}")
+    target_compile_options(${PROJECT_NAME} PRIVATE -std=gnu++${CXX_STANDARD})
   else()
-    add_definitions("-std=c++${CXX_STANDARD}")
+    target_compile_options(${PROJECT_NAME} PRIVATE -std=c++${CXX_STANDARD})
   endif()
 
   # No exceptions
-  add_definitions("-fno-exceptions")
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 
   # Differnt optimization settings
   if (OPTIMIZE STREQUAL "1")
-    add_definitions("-ggdb -D_DEBUG")
+    target_compile_options(${PROJECT_NAME} PRIVATE -ggdb)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "_DEBUG")
   elseif(OPTIMIZE STREQUAL "2")
-    add_definitions("-O1 -D_DEBUG")
+    target_compile_options(${PROJECT_NAME} PRIVATE -O1)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "_DEBUG")
   elseif(OPTIMIZE STREQUAL "3")
-    add_definitions("-O2")
-    add_definitions("-ffast-math -fno-finite-math-only -fno-unsafe-math-optimizations")
+    target_compile_options(${PROJECT_NAME} PRIVATE -O2)
+    target_compile_options(${PROJECT_NAME} PRIVATE -ffast-math -fno-finite-math-only -fno-unsafe-math-optimizations)
   elseif(OPTIMIZE STREQUAL "4")
-    add_definitions("-O3 -DNDEBUG -ffast-math -fno-unsafe-math-optimizations -fno-rtti")
+    target_compile_options(${PROJECT_NAME} PRIVATE -O3 -ffast-math -fno-unsafe-math-optimizations -fno-rtti)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "NDEBUG")
   else()
     message(FATAL_ERROR "Invalid optimize value! Was: '${OPTIMIZE}'")
   endif()
@@ -419,20 +440,20 @@ else()
 endif()
 
 # Define the module name
-add_definitions("/DPB_MODULE=${PROJECT_NAME}")
-add_definitions("/DPB_CFG_MODULE=${PROJECT_NAME}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PB_MODULE=${PROJECT_NAME}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PB_CFG_MODULE=${PROJECT_NAME}")
 
 # Collect sources for compiling
 set(SOURCES_DIR "${CMAKE_BINARY_DIR}/../..")
 file(GLOB SOURCES ${SOURCES_DIR}/*.cpp ${SOURCES_DIR}/*.cxx ${SOURCES_DIR}/*.I ${SOURCES_DIR}/*.hpp ${SOURCES_DIR}/*.h ${SOURCES_DIR}/*.cc ${SOURCES_DIR}/*.c)
-include_directories(${SOURCES_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${SOURCES_DIR})
 set(SOURCES ${SOURCES_H} ${SOURCES})
 
 # Collect subdirs for compiling
 file(GLOB POSSIBLE_DIRS RELATIVE ${SOURCES_DIR} ${SOURCES_DIR}/*)
 foreach(PDIR ${POSSIBLE_DIRS})
   if ((IS_DIRECTORY ${SOURCES_DIR}/${PDIR}) AND NOT (${PDIR} STREQUAL "build"))
-    include_directories("${SOURCES_DIR}/${PDIR}")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${SOURCES_DIR}/${PDIR}")
     file(GLOB SUB_SOURCES ${SOURCES_DIR}/${PDIR}/*.cpp ${SOURCES_DIR}/${PDIR}/*.cxx ${SOURCES_DIR}/${PDIR}/*.I ${SOURCES_DIR}/${PDIR}/*.hpp ${SOURCES_DIR}/${PDIR}/*.h ${SOURCES_DIR}/${PDIR}/*.cc ${SOURCES_DIR}/${PDIR}/*.c)
     set(SOURCES ${SOURCES} ${SUB_SOURCES})
   endif()
@@ -443,19 +464,7 @@ if ((EXISTS "${CMAKE_CURRENT_LIST_DIR}/additional_libs.cmake"))
   include("${CMAKE_CURRENT_LIST_DIR}/additional_libs.cmake")
 endif()
 
-
-# Build library
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  # macOS won't let us link a .so with another .so, so make a .dylib
-  add_library(${PROJECT_NAME} SHARED ${SOURCES})
-  # Python doesn't detect .dylibs, so rename it .so
-  set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
-else()
-  add_library(${PROJECT_NAME} MODULE ${SOURCES})
-endif()
-
-# Don't add lib prefix on Linux
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 
 # Add the required libraries
 target_link_libraries(${PROJECT_NAME} ${PANDA_LINK_LIBRARIES} ${LIBRARIES})
