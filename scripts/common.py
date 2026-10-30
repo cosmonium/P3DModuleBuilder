@@ -216,6 +216,43 @@ def get_compiler_name():
     compiler_name = full_name.split()[0]
     return compiler_name.upper()
 
+
+def _find_bundled_interrogate_tool(tool_name):
+    """ Returns the path to the interrogate/interrogate_module executable
+    bundled with the panda3d-interrogate" pip package.
+    Returns None if it is not installed.
+    """
+    # Use importlib.metadata to find the package location as plain import
+    # would return this module location instead.
+    from importlib import metadata as importlib_metadata
+
+    try:
+        dist = importlib_metadata.distribution("panda3d-interrogate")
+    except importlib_metadata.PackageNotFoundError:
+        return None
+
+    exe_name = tool_name + (".exe" if is_windows() else "")
+    for f in dist.files or []:
+        if f.name == exe_name:
+            tool_path = str(f.locate())
+            if isfile(tool_path):
+                return tool_path
+    return None
+
+
+def get_interrogate_executable():
+    """ Returns the path to the interrogate executable.
+    Looks first for the prebuilt binary from the "panda3d-interrogate" pip package.
+    If not found, falls back to the system PATH and assume it is installed with the SDK.
+    """
+    return _find_bundled_interrogate_tool("interrogate") or "interrogate"
+
+
+def get_interrogate_module_executable():
+    """ Same as get_interrogate_executable(), but for interrogate_module """
+    return _find_bundled_interrogate_tool("interrogate_module") or "interrogate_module"
+
+
 def decode_str(s):
     if isinstance(s, str):
         return s.encode("ascii", "ignore").decode("ascii", "ignore")
