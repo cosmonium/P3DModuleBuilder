@@ -37,6 +37,7 @@ set(USE_SDK_PATH CACHE BOOL TRUE)
 set(ENABLE_SSE2 CACHE BOOL 1)
 set(TOUCHINPUT_ENABLED CACHE BOOL 0)
 
+set(CXX_STANDARD CACHE STRING "14")
 
 # --- End of user variables --
 
@@ -334,6 +335,11 @@ if (MSVC)
   add_definitions("/MP")
   # add_definitions("/GM-")
 
+  if (CXX_STANDARD STREQUAL "11")
+    # MSVC has no /std: switch for C++11; it always builds at least C++14.
+  else()
+    add_definitions("/std:c++${CXX_STANDARD}")
+  endif()
 
 else()
   # Silence CMake warning on macOS
@@ -348,12 +354,13 @@ else()
   endif()
 
   add_definitions("-pthread")
-#TODO: Make this more robust...
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  add_definitions("-std=gnu++17")
-else()
-  add_definitions("-std=c++17")
-endif()
+
+  # TODO: Make this more robust...
+  if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_definitions("-std=gnu++${CXX_STANDARD}")
+  else()
+    add_definitions("-std=c++${CXX_STANDARD}")
+  endif()
 
   # No exceptions
   add_definitions("-fno-exceptions")

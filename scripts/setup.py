@@ -166,6 +166,10 @@ def run_cmake(config, args):
 
     cmake_args += ["-DOPTIMIZE=" + str(optimize)]
 
+    # C++ standard
+    if "cxx_standard" in config:
+        cmake_args += ["-DCXX_STANDARD=" + str(config["cxx_standard"])]
+
     output = try_execute(args.cmake, join_abs(get_script_dir(), ".."), *cmake_args, error_formatter=handle_cmake_error)
 
 

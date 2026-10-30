@@ -115,6 +115,7 @@ Further adjustments can be made in the `config.ini` file:
 
 - You can set `generate_pdb` to `0` or `1` to control whether a `.pdb` file is generated.
 - You can set `optimize` to change the optimization. This has to match the `--optimize=` option of your Panda3D Build.
+- You can set `cxx_standard` to change the C++ standard (defaults to `14`). This should be compatible with your Panda3D build.
 - You can set `require_lib_eigen` to `1` to require the Eigen 3 library
 - You can set `require_lib_bullet` to `1` to require the Bullet library
 - You can set `require_lib_freetype` to `1` to require the Freetype library
