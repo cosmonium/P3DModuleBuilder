@@ -88,14 +88,10 @@ print(example.get_answer()) # prints 42
 - windows only: The thirdparty folder installed in the Panda3D sdk folder (See <a href="https://www.panda3d.org/forums/viewtopic.php?f=9&t=18775">here</a>)
 
 
-**For compiling on Windows 32 bit:**
+**For compiling on Windows:**
 
-- Visual Studio 2010/2015
-
-**For compiling on Windows 64 bit:**
-
-- Visual Studio 2010/2015
-- Windows SDK 7.1 (be sure to tick the VC++ 64 bit compilers option)
+- Visual Studio 2017 or newer
+- Windows SDK (be sure to tick the VC++ 64 bit compilers option for 64-bit builds)
 
 
 ## Advanced configuration
