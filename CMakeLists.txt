@@ -39,6 +39,10 @@ set(TOUCHINPUT_ENABLED CACHE BOOL 0)
 
 set(CXX_STANDARD CACHE STRING "14")
 
+# Try Panda3D own find_package(Panda3D) CMake package before falling back
+# to the manual SDK detection below.
+option(USE_PANDA3D_CMAKE_PACKAGE "Try find_package(Panda3D) before falling back to manual SDK detection" ON)
+
 # --- End of user variables --
 
 # Reset cmake flags - we user our own
@@ -48,6 +52,21 @@ set(CMAKE_CXX_FLAGS_MINSIZEREL "")
 
 
 set(LIBRARIES "")
+
+# Try Panda3D's own CMake package first.
+set(PANDA3D_CMAKE_PACKAGE_FOUND FALSE)
+if (USE_PANDA3D_CMAKE_PACKAGE)
+  set(_p3d_components Core)
+  if (HAVE_LIB_BULLET)
+    list(APPEND _p3d_components Bullet)
+  endif()
+  find_package(Panda3D QUIET COMPONENTS ${_p3d_components})
+  unset(_p3d_components)
+  if (Panda3D_FOUND)
+    set(PANDA3D_CMAKE_PACKAGE_FOUND TRUE)
+    message(STATUS "Found Panda3D via find_package(Panda3D); using its imported targets instead of manual SDK detection")
+  endif()
+endif()
 
 # Windows - 32 and 64 bit
 if (WIN32)
@@ -96,17 +115,18 @@ if (WIN32)
   set(THIRDPARTY_DIR ${THIRDPARTY_WIN_DIR})
   message(STATUS "Detected thirdparty directory: ${THIRDPARTY_DIR}")
 
-
-  # Find lib and include directory
-  set(PANDA_LIBRARY_DIRS "${WIN_PANDA_PATH}/lib")
-  set(PANDA_INCLUDE_DIR "${WIN_PANDA_PATH}/include")
-
-  if (NOT (EXISTS "${PANDA_LIBRARY_DIRS}"))
-    message(WARNING "Panda3D library directory does not exist! Expected it at: ${PANDA_LIBRARY_DIRS}")
-  endif()
-
   set(PYTHON_LIBRARIES "${WIN_PANDA_PATH}/python/libs/python${PYTHONVER}.lib")
   set(PYTHON_INCLUDE_DIRS "${WIN_PANDA_PATH}/python/include")
+
+  if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
+    # Find lib and include directory
+    set(PANDA_LIBRARY_DIRS "${WIN_PANDA_PATH}/lib")
+    set(PANDA_INCLUDE_DIR "${WIN_PANDA_PATH}/include")
+
+    if (NOT (EXISTS "${PANDA_LIBRARY_DIRS}"))
+      message(WARNING "Panda3D library directory does not exist! Expected it at: ${PANDA_LIBRARY_DIRS}")
+    endif()
+  endif()
 
   # [LIB] Bullet
   if(HAVE_LIB_BULLET)
@@ -152,20 +172,22 @@ if (WIN32)
     set(LIBRARIES "${LIBRARIES};freetype")
   endif()
 
-  # Check if all supplied files exist
-  set(CHECK_PATHS ${PANDA_LIBRARY_DIRS} ${PANDA_INCLUDE_DIR} ${PYTHON_LIBRARIES} ${PYTHON_INCLUDE_DIRS})
-  foreach(PATH ${CHECK_PATHS})
-    if(NOT (EXISTS "${PATH}"))
-        message(FATAL_ERROR "The supplied path '${PATH}' could not be found!")
-    endif()
-  endforeach()
+  if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
+    # Check if all supplied files exist
+    set(CHECK_PATHS ${PANDA_LIBRARY_DIRS} ${PANDA_INCLUDE_DIR} ${PYTHON_LIBRARIES} ${PYTHON_INCLUDE_DIRS})
+    foreach(PATH ${CHECK_PATHS})
+      if(NOT (EXISTS "${PATH}"))
+          message(FATAL_ERROR "The supplied path '${PATH}' could not be found!")
+      endif()
+    endforeach()
 
-  # Link panda libraries
-  set(PANDA_LIBRARIES "libpanda;libpandaexpress;libp3dtool;libp3dtoolconfig;libp3direct")
-  if(HAVE_LIB_BULLET)
-    set(PANDA_LIBRARIES "libpandabullet;${PANDA_LIBRARIES}")
+    # Link panda libraries
+    set(PANDA_LIBRARIES "libpanda;libpandaexpress;libp3dtool;libp3dtoolconfig;libp3direct")
+    if(HAVE_LIB_BULLET)
+      set(PANDA_LIBRARIES "libpandabullet;${PANDA_LIBRARIES}")
+    endif()
+    link_directories("${PANDA_LIBRARY_DIRS}")
   endif()
-  link_directories("${PANDA_LIBRARY_DIRS}")
 
 else()
   set(PYTHONVERDOT CACHE STRING "2.7")
@@ -206,45 +228,47 @@ else()
     set(LIBRARIES "${LIBRARIES};${FREETYPE_LIBRARIES}")
   endif()
 
-  # Locate the Panda3D headers
-  find_path(PANDA_INCLUDE_DIR dtoolbase.h PATH_SUFFIXES panda3d)
+  if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
+    # Locate the Panda3D headers
+    find_path(PANDA_INCLUDE_DIR dtoolbase.h PATH_SUFFIXES panda3d)
 
-  # Locate the Panda3D libraries
-  set(REQ_LIBRARIES panda pandaexpress p3dtool p3dtoolconfig)
-  if(HAVE_LIB_BULLET)
-    set(REQ_LIBRARIES pandabullet ${REQ_LIBRARIES})
-  endif()
-
-  set(PANDA_LIBRARIES "")
-  foreach (lib ${REQ_LIBRARIES})
-    find_library(PANDA_LIBRARY_${lib} ${lib} PATH_SUFFIXES panda3d)
-    set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_${lib}}")
-  endforeach()
-
-  find_package_handle_standard_args(Panda DEFAULT_MSG
-                                    PANDA_LIBRARIES PANDA_INCLUDE_DIR)
-
-  if (NOT EXISTS ${PANDA_INCLUDE_DIR})
-    # Okay, the standard package handling failed. Try finding a local panda3d installation
-
-    # Find panda path
-    execute_process(
-      COMMAND "${PYTHON_EXECUTABLE}" "-B" "scripts/common.py" "--print-sdk-path"
-      OUTPUT_VARIABLE LOCAL_PANDA_PATH
-      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-
-    if (NOT EXISTS "${LOCAL_PANDA_PATH}/include")
-      message(FATAL_ERROR "Could not find system wide panda3d headers, and no local installation was found!")
+    # Locate the Panda3D libraries
+    set(REQ_LIBRARIES panda pandaexpress p3dtool p3dtoolconfig)
+    if(HAVE_LIB_BULLET)
+      set(REQ_LIBRARIES pandabullet ${REQ_LIBRARIES})
     endif()
 
-    set(PANDA_INCLUDE_DIR "${LOCAL_PANDA_PATH}/include")
-
     set(PANDA_LIBRARIES "")
-    foreach(lib ${REQ_LIBRARIES})
-      find_library(PANDA_LIBRARY_${lib} ${lib} PATHS "${LOCAL_PANDA_PATH}/lib/")
+    foreach (lib ${REQ_LIBRARIES})
+      find_library(PANDA_LIBRARY_${lib} ${lib} PATH_SUFFIXES panda3d)
       set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_${lib}}")
     endforeach()
 
+    find_package_handle_standard_args(Panda DEFAULT_MSG
+                                      PANDA_LIBRARIES PANDA_INCLUDE_DIR)
+
+    if (NOT EXISTS ${PANDA_INCLUDE_DIR})
+      # Okay, the standard package handling failed. Try finding a local panda3d installation
+
+      # Find panda path
+      execute_process(
+        COMMAND "${PYTHON_EXECUTABLE}" "-B" "scripts/common.py" "--print-sdk-path"
+        OUTPUT_VARIABLE LOCAL_PANDA_PATH
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+
+      if (NOT EXISTS "${LOCAL_PANDA_PATH}/include")
+        message(FATAL_ERROR "Could not find system wide panda3d headers, and no local installation was found!")
+      endif()
+
+      set(PANDA_INCLUDE_DIR "${LOCAL_PANDA_PATH}/include")
+
+      set(PANDA_LIBRARIES "")
+      foreach(lib ${REQ_LIBRARIES})
+        find_library(PANDA_LIBRARY_${lib} ${lib} PATHS "${LOCAL_PANDA_PATH}/lib/")
+        set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_${lib}}")
+      endforeach()
+
+    endif()
   endif()
 
 endif()
@@ -257,8 +281,21 @@ execute_process(
 
 
 # Link panda includes / libraries
-include_directories("${PANDA_INCLUDE_DIR}")
+if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
+  include_directories("${PANDA_INCLUDE_DIR}")
+endif()
 include_directories("${PYTHON_INCLUDE_DIRS}")
+
+# Resolve which libraries/targets to link the module against for Panda3D
+# itself, depending on which of the two paths above was used to find it.
+if (PANDA3D_CMAKE_PACKAGE_FOUND)
+  set(PANDA_LINK_LIBRARIES Panda3D::Core::panda)
+  if (HAVE_LIB_BULLET)
+    list(APPEND PANDA_LINK_LIBRARIES Panda3D::Bullet::p3bullet)
+  endif()
+else()
+  set(PANDA_LINK_LIBRARIES ${PANDA_LIBRARIES})
+endif()
 
 # Run interrogate over the files
 execute_process(
@@ -421,7 +458,7 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
 # Add the required libraries
-target_link_libraries(${PROJECT_NAME} ${PANDA_LIBRARIES} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PANDA_LINK_LIBRARIES} ${LIBRARIES})
 
 if (APPLE OR WIN32)
   target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
@@ -440,7 +477,7 @@ add_custom_command(
     COMMAND "${PYTHON_EXECUTABLE}" "-B" "${CMAKE_CURRENT_LIST_DIR}/scripts/finalize.py" "${PROJECT_NAME}")
 
 # Make shared library paths absolute on macOS
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if ((NOT PANDA3D_CMAKE_PACKAGE_FOUND) AND (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
   execute_process(
     COMMAND "${PYTHON_EXECUTABLE}" "-B" "scripts/common.py" "--print-lib-path"
     OUTPUT_VARIABLE PANDA_LIB_PATH

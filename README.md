@@ -12,6 +12,7 @@ It makes compiling your C++ code the matter of a single mouse-click.
 
  - Automatic Python bindings using `interrogate`
  - Works on Windows, Linux and Mac
+ - Automatically uses Panda3D's own CMake package (`find_package(Panda3D)`) when available, otherwise falls back to detecting the SDK manually
 
 ## Getting started
 
