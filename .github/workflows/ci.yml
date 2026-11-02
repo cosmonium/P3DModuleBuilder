@@ -1,0 +1,362 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Validate the tool before testing with actual Panda3D SDK
+  smoke-test:
+    name: Smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create the virtual environment
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install pip dependencies
+        run: python -m pip install panda3d panda3d-interrogate
+
+      - name: Byte-compile the build scripts
+        run: python -m py_compile build.py scripts/*.py
+
+      - name: Check interrogate/interrogate_module resolution
+        run: |
+          cd scripts
+          python -c "
+          import common
+          print('interrogate:', common.get_interrogate_executable())
+          print('interrogate_module:', common.get_interrogate_module_executable())
+          "
+
+      - name: CMake configure validaton
+        run: |
+          mkdir -p build/ci
+          cd build/ci
+          set +e
+          output=$(cmake -DCMAKE_BUILD_TYPE=Release \
+              -DPYTHON_EXECUTABLE:STRING=$(which python) \
+              -DSHORT_PROJECT_NAME:STRING=CI_TEST \
+              -DPROJECT_NAME:STRING=CI_TEST \
+              -DTHIRDPARTY_WIN_DIR= \
+              -DHAVE_LIB_EIGEN=TRUE \
+              -DIGATE_VERBOSE=0 \
+              -DOPTIMIZE=3 \
+              ../.. 2>&1)
+          status=$?
+          echo "$output"
+          if [ $status -eq 0 ]; then
+            echo "Expected cmake configure to fail (no Panda3D SDK is installed), but it succeeded."
+            exit 1
+          fi
+          if ! echo "$output" | grep -q "Could not find system wide panda3d headers"; then
+            echo "cmake failed for an unexpected reason."
+            exit 1
+          fi
+          echo "cmake configure ran and failed as expected."
+
+  # Build and test a test module with the Panda3D SDK installed
+  build-linux:
+    name: Build test module on ${{ matrix.os }}
+    needs: smoke-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        include:
+            - os: ubuntu-22.04
+              deb: panda3d1.10_1.10.16~jammy_amd64.deb
+              sha256: 7bfd3be5fa2094f769221c187fdcf74995a78bfed94033f1ffbe211e24514804
+            - os: ubuntu-24.04
+              deb: panda3d1.10_1.10.16~noble_amd64.deb
+              sha256: eb40c1417c3cb7a6b045bf23fcaaddd82da7d9874ee83d35edf1a98d2339ba1c
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libeigen3-dev libfreetype6-dev libbullet-dev python3-dev
+
+      - name: Install Panda3D SDK
+        run: |
+          curl -fsSL "https://archive.panda3d.org/ubuntu/pool/main/p/panda3d1.10/${{ matrix.deb }}" -o "$RUNNER_TEMP/${{ matrix.deb }}"
+          echo "${{matrix.sha256 }} $RUNNER_TEMP/${{ matrix.deb }}" | sha256sum -c -
+          sudo apt-get install -y "$RUNNER_TEMP/${{ matrix.deb }}"
+
+      - name: Create config.ini
+        run: |
+          cat > config.ini <<'EOF'
+          module_name=CI_TEST
+          cxx_standard=14
+          generate_pdb=0
+          optimize=3
+          require_lib_bullet=0
+          require_lib_eigen=0
+          require_lib_freetype=0
+          verbose_igate=0
+          EOF
+
+      - name: Build the example module
+        run: python3 build.py
+
+      - name: Import the built module
+        run: python3 -c "import panda3d.core; import CI_TEST; print(dir(CI_TEST))"
+
+  build-linux-panda3d-1-11:
+    name: Build test module on ubuntu-22.04 (Panda3D 1.11)
+    needs: smoke-test
+    runs-on: ubuntu-22.04
+    env:
+      # Use Cosmonium Panda3D 1.11 package as packages in archive.panda3d.org are too old
+      # and not compatible with the current interrogate/interrogate_module pip packages.
+      PANDA3D_DEB_URL: https://github.com/cosmonium/panda3d/releases/download/cosmonium-v1.11.0.dev3918-g3c852c8d72/panda3d1.11_1.11.0.dev3918.jammy_amd64.deb
+      PANDA3D_DEB_SHA256: d88bc45b00e09ed270a0fe4ad601f7bee539fef48b3d892078a0cd20329ad002
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libeigen3-dev libfreetype6-dev libbullet-dev python3-dev python3-venv
+
+      - name: Install Panda3D SDK
+        run: |
+          curl -fsSL "$PANDA3D_DEB_URL" -o "$RUNNER_TEMP/panda3d.deb"
+          echo "$PANDA3D_DEB_SHA256  $RUNNER_TEMP/panda3d.deb" | sha256sum -c -
+          sudo apt-get install -y "$RUNNER_TEMP/panda3d.deb"
+
+      - name: Install panda3d-interrogate
+        run: |
+          # Create a virtual environment with system wide site packages to use the installed SDK
+          python3 -m venv --system-site-packages "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install panda3d-interrogate==0.11.2
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Create config.ini
+        run: |
+          cat > config.ini <<'EOF2'
+          module_name=CI_TEST
+          cxx_standard=14
+          generate_pdb=0
+          optimize=3
+          require_lib_bullet=0
+          require_lib_eigen=0
+          require_lib_freetype=0
+          verbose_igate=0
+          EOF2
+
+      - name: Check interrogate resolution
+        run: |
+          cd scripts
+          python -c "
+          import common
+          print('interrogate:', common.get_interrogate_executable())
+          print('interrogate_module:', common.get_interrogate_module_executable())
+          "
+
+      - name: Build the example module
+        run: python build.py
+
+      - name: Import the built module
+        run: python -c "import panda3d.core; import CI_TEST; print(dir(CI_TEST))"
+
+  build-windows:
+    name: Build test module on Windows (Panda3D ${{ matrix.panda3d }})
+    needs: smoke-test
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - panda3d: '1.10'
+            python: '3.11'
+            sdk_url: https://www.panda3d.org/download/panda3d-1.10.16/Panda3D-SDK-1.10.16-x64.exe
+            sdk_sha256: fcbc3ca963f551f7247120a556f6fac28a68c05c3e3393757a93f90b63b5c520
+            sdk_dir: C:\Panda3D-1.10.16-x64
+          - panda3d: '1.11'
+            # Use Cosmonium Panda3D 1.11 package as packages in archive.panda3d.org are too old
+            # and not compatible with the current interrogate/interrogate_module pip packages.
+            sdk_url: https://github.com/cosmonium/panda3d/releases/download/cosmonium-v1.11.0.dev3918-g3c852c8d72/Panda3D-1.11.0.dev3918-py3.10-x64.exe
+            sdk_sha256: 4a3957261f4fef7850e5f492f5043cc1c4d8a3a6307ae8446ff324d9c38ea5a9
+            sdk_dir: C:\Panda3D-1.11.0-x64
+              # Eigen headers are not shipped in the SDK
+            extra_includes_url: https://github.com/cosmonium/panda3d/releases/download/cosmonium-v1.11.0.dev3918-g3c852c8d72/extra-includes.1.11.0.dev3918.zip
+            extra_includes_sha256: 733f20b710278c498f839a8f4f71a62b942ef65eb96fbf22cf81629a43feb28f
+    env:
+      P3D_SDK: ${{ matrix.sdk_dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        if: matrix.python != ''
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install Panda3D SDK
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'panda3d-sdk.exe'
+          Invoke-WebRequest -Uri '${{ matrix.sdk_url }}' -OutFile $installer
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne '${{ matrix.sdk_sha256 }}') { throw "Unexpected SDK checksum: $hash" }
+          # NSIS silent install, /D must be the last argument and must not be quoted
+          Start-Process -FilePath $installer -ArgumentList '/S', "/D=$env:P3D_SDK" -Wait
+          if (-not (Test-Path "$env:P3D_SDK\include\dtoolbase.h")) { throw "The SDK was not installed in $env:P3D_SDK" }
+          # Use the tools of the SDK
+          "$env:P3D_SDK\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+          if ('${{ matrix.python }}' -eq '') {
+            # Use the Python of the SDK
+            "$env:P3D_SDK\python" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+          } else {
+            # Use the Panda3D of the SDK with the Python from setup-python
+            "PYTHONPATH=$env:P3D_SDK" | Out-File -Append -Encoding ascii $env:GITHUB_ENV
+          }
+
+      - name: Create the thirdparty directory
+        run: |
+          # The module builder requires it, Eigen is the only library needed by the test module
+          $eigen = "$env:P3D_SDK\thirdparty\win-libs-vc14-x64\eigen\include"
+          New-Item -ItemType Directory -Force $eigen | Out-Null
+          if ('${{ matrix.extra_includes_url }}' -ne '') {
+            $zip = Join-Path $env:RUNNER_TEMP 'extra-includes.zip'
+            Invoke-WebRequest -Uri '${{ matrix.extra_includes_url }}' -OutFile $zip
+            $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+            if ($hash -ne '${{ matrix.extra_includes_sha256 }}') { throw "Unexpected extra includes checksum: $hash" }
+            Expand-Archive $zip -DestinationPath $eigen
+          }
+          if (-not (Test-Path "$eigen\Eigen") -and -not (Test-Path "$env:P3D_SDK\include\Eigen")) { throw "Eigen headers not found" }
+
+      - name: Install panda3d-interrogate
+        if: matrix.panda3d == '1.11'
+        run: python -m pip install panda3d-interrogate==0.11.2
+
+      - name: Print the Panda3D and compiler versions
+        run: |
+          python --version
+          python -c "from panda3d.core import PandaSystem; print(PandaSystem.get_version_string(), '|', PandaSystem.get_compiler(), '|', PandaSystem.get_platform())"
+
+      - name: Create config.ini
+        run: |
+          @"
+          module_name=CI_TEST
+          cxx_standard=14
+          generate_pdb=0
+          optimize=3
+          require_lib_bullet=0
+          require_lib_eigen=0
+          require_lib_freetype=0
+          verbose_igate=0
+          "@ | Out-File -Encoding ascii config.ini
+
+      - name: Check interrogate resolution
+        run: |
+          cd scripts
+          python -c "import common; print('interrogate:', common.get_interrogate_executable()); print('interrogate_module:', common.get_interrogate_module_executable())"
+
+      - name: Build the example module
+        # The runner provides a Visual Studio 2022 installation, which is compatible with the SDKs.
+        run: python build.py --cmake-generator "Visual Studio 17 2022"
+
+      - name: Import the built module
+        run: python -c "import panda3d.core; import CI_TEST; print(dir(CI_TEST))"
+
+  build-macos:
+    name: Build test module on macOS (Panda3D ${{ matrix.panda3d }})
+    needs: smoke-test
+    runs-on: macos-15-intel
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - panda3d: '1.10'
+            python: '3.11'
+            sdk_url: https://www.panda3d.org/download/panda3d-1.10.16/Panda3D-SDK-1.10.16-MacOSX10.9.dmg
+            sdk_sha256: 74c5f825c177c49fbf6df47ed5a698cee1c5d84ed1b618a05032fc275ab52980
+          - panda3d: '1.11'
+            python: '3.10'
+            # Use Cosmonium Panda3D 1.11 package as packages in archive.panda3d.org are too old
+            # and not compatible with the current interrogate/interrogate_module pip packages.
+            sdk_url: https://github.com/cosmonium/panda3d/releases/download/cosmonium-v1.11.0.dev3918-g3c852c8d72/Panda3D-1.11.0.dev3918-py3.10.dmg
+            sdk_sha256: 54ef8017dd13e076382938ac3ef0cb02c661fade9a68de4385a0398fb7028d0a
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install build dependencies
+        run: python -m pip install setuptools
+
+      - name: Install Panda3D SDK
+        run: |
+          curl -fsSL "${{ matrix.sdk_url }}" -o "$RUNNER_TEMP/panda3d.dmg"
+          echo "${{ matrix.sdk_sha256 }}  $RUNNER_TEMP/panda3d.dmg" | shasum -a 256 -c -
+          hdiutil attach -nobrowse -readonly -mountpoint "$RUNNER_TEMP/panda3d-dmg" "$RUNNER_TEMP/panda3d.dmg"
+          # The C++ headers are not installed by default and the Python bindings are
+          # only installed for the Python versions found in the system paths.
+          # Disable ffmpeg and ffmodex, not available in the thirdparty pakage, and skips samples
+          choices="$RUNNER_TEMP/choices.xml"
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            echo '<plist version="1.0"><array>'
+            for choice in base tools pythoncode headers pybindings${{ matrix.python }}; do
+              echo "<dict><key>choiceIdentifier</key><string>$choice</string><key>choiceAttribute</key><string>selected</string><key>attributeSetting</key><integer>1</integer></dict>"
+            done
+            for choice in samples ffmpeg fmodex; do
+              echo "<dict><key>choiceIdentifier</key><string>$choice</string><key>choiceAttribute</key><string>selected</string><key>attributeSetting</key><integer>0</integer></dict>"
+            done
+            echo '</array></plist>'
+          } > "$choices"
+          sudo installer -pkg "$RUNNER_TEMP/panda3d-dmg/Panda3D.mpkg" -target / -applyChoiceChangesXML "$choices"
+          hdiutil detach "$RUNNER_TEMP/panda3d-dmg"
+          test -f /Library/Developer/Panda3D/include/dtoolbase.h
+          # Use the Panda3D of the SDK and its tools
+          echo "PYTHONPATH=/Library/Developer/Panda3D" >> "$GITHUB_ENV"
+          echo "/Library/Developer/Panda3D/bin" >> "$GITHUB_PATH"
+
+      - name: Install panda3d-interrogate
+        if: matrix.panda3d == '1.11'
+        run: python -m pip install panda3d-interrogate==0.11.2
+
+      - name: Print the Panda3D and compiler versions
+        run: |
+          python --version
+          python -c "from panda3d.core import PandaSystem; print(PandaSystem.get_version_string(), '|', PandaSystem.get_compiler(), '|', PandaSystem.get_platform())"
+
+      - name: Create config.ini
+        run: |
+          cat > config.ini <<'EOF2'
+          module_name=CI_TEST
+          cxx_standard=14
+          generate_pdb=0
+          optimize=3
+          require_lib_bullet=0
+          require_lib_eigen=0
+          require_lib_freetype=0
+          verbose_igate=0
+          EOF2
+
+      - name: Check interrogate resolution
+        run: |
+          cd scripts
+          python -c "
+          import common
+          print('interrogate:', common.get_interrogate_executable())
+          print('interrogate_module:', common.get_interrogate_module_executable())
+          "
+
+      - name: Build the example module
+        run: python build.py --use-sdk-path
+
+      - name: Import the built module
+        run: python -c "import panda3d.core; import CI_TEST; print(dir(CI_TEST))"
