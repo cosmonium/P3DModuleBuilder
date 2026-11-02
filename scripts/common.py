@@ -218,8 +218,7 @@ def get_compiler_name():
 
 
 def _find_bundled_interrogate_tool(tool_name):
-    """ Returns the path to the interrogate/interrogate_module executable
-    bundled with the panda3d-interrogate" pip package.
+    """ Returns the path to an executable bundled with the panda3d-interrogate" pip package.
     Returns None if it is not installed.
     """
     # Use importlib.metadata to find the package location as plain import
@@ -240,17 +239,35 @@ def _find_bundled_interrogate_tool(tool_name):
     return None
 
 
+def _find_sdk_interrogate_tool(tool_name):
+    """ Returns the path to an executable located in the bin directory next to the
+    lib directory of a local build of Panda3D.
+    Returns None if there is no such executable.
+    """
+    exe_name = tool_name + (".exe" if is_windows() else "")
+    try:
+        tool_path = join(get_panda_lib_path(), "..", "bin", exe_name)
+    except Exception:
+        return None
+    return realpath(tool_path) if isfile(tool_path) else None
+
+
 def get_interrogate_executable():
     """ Returns the path to the interrogate executable.
-    Looks first for the prebuilt binary from the "panda3d-interrogate" pip package.
+    Looks first for the one that comes with a local build of Panda3D,
+    then for the prebuilt binary from the "panda3d-interrogate" pip package.
     If not found, falls back to the system PATH and assume it is installed with the SDK.
     """
-    return _find_bundled_interrogate_tool("interrogate") or "interrogate"
+    return (_find_sdk_interrogate_tool("interrogate") or
+            _find_bundled_interrogate_tool("interrogate") or
+            "interrogate")
 
 
 def get_interrogate_module_executable():
     """ Same as get_interrogate_executable(), but for interrogate_module """
-    return _find_bundled_interrogate_tool("interrogate_module") or "interrogate_module"
+    return (_find_sdk_interrogate_tool("interrogate_module") or
+            _find_bundled_interrogate_tool("interrogate_module") or
+            "interrogate_module")
 
 
 def decode_str(s):

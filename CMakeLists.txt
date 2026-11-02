@@ -244,6 +244,10 @@ if (WIN32)
 
     # Link panda libraries
     set(PANDA_LIBRARIES "libpanda;libpandaexpress;libp3dtool;libp3dtoolconfig;libp3direct")
+    # Add interrogate library if shipped with the SDK
+    if(EXISTS "${PANDA_LIBRARY_DIRS}/libp3interrogatedb.lib")
+      set(PANDA_LIBRARIES "${PANDA_LIBRARIES};libp3interrogatedb")
+    endif()
     if(HAVE_LIB_BULLET)
       set(PANDA_LIBRARIES "libpandabullet;${PANDA_LIBRARIES}")
     endif()
@@ -315,6 +319,15 @@ else()
       find_library(PANDA_LIBRARY_${lib} ${lib} PATH_SUFFIXES panda3d)
       set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_${lib}}")
     endforeach()
+
+    # Detect if the interrogate library exists, and if so, add it to the list of libraries to link against.
+    if (PANDA_PY_LIB_DIR)
+      find_library(PANDA_LIBRARY_p3interrogatedb p3interrogatedb PATHS "${PANDA_PY_LIB_DIR}" NO_DEFAULT_PATH)
+    endif()
+    find_library(PANDA_LIBRARY_p3interrogatedb p3interrogatedb PATH_SUFFIXES panda3d)
+    if (PANDA_LIBRARY_p3interrogatedb)
+      set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_p3interrogatedb}")
+    endif()
 
     find_package_handle_standard_args(Panda DEFAULT_MSG
                                       PANDA_LIBRARIES PANDA_INCLUDE_DIR)
@@ -556,8 +569,15 @@ if ((NOT PANDA3D_CMAKE_PACKAGE_FOUND) AND (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   )
 
+  # The libraries of the SDK the module is linked against, including the interrogate
+  # library if the SDK ships it
+  set(PANDA_FIXUP_LIBRARIES ${REQ_LIBRARIES})
+  if (PANDA_LIBRARY_p3interrogatedb)
+    list(APPEND PANDA_FIXUP_LIBRARIES p3interrogatedb)
+  endif()
+
   if (USE_SDK_PATH)
-    foreach(lib ${REQ_LIBRARIES})
+    foreach(lib ${PANDA_FIXUP_LIBRARIES})
       add_custom_command(
         TARGET ${PROJECT_NAME}
         POST_BUILD
@@ -565,7 +585,7 @@ if ((NOT PANDA3D_CMAKE_PACKAGE_FOUND) AND (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"
         WORKING_DIRECTORY "../..")
     endforeach()
   else()
-    foreach(lib ${REQ_LIBRARIES})
+    foreach(lib ${PANDA_FIXUP_LIBRARIES})
       add_custom_command(
         TARGET ${PROJECT_NAME}
         POST_BUILD
