@@ -117,6 +117,20 @@ Further adjustments can be made in the `config.ini` file:
 - You can set `require_lib_freetype` to `1` to require the Freetype library
 - You can set `verbose_igate` to `1` or `2` to get detailed interrogate output (1 = verbose, 2 = very verbose)
 
+### Using a local build of Panda3D
+
+The Panda3D used for the build is the one imported by the python interpreter running `build.py`.
+If you use a Panda3D which is built but not installed, point python and the dynamic linker to it:
+
+```bash
+export PYTHONPATH=/path/to/panda3d/built
+# On Linux
+export LD_LIBRARY_PATH=/path/to/panda3d/built/lib
+# On macOS
+export DYLD_LIBRARY_PATH=/path/to/panda3d/built/lib
+python build.py --clean
+```
+
 ### Additional libaries
 
 If you want to include additional (external) libraries, you can create a

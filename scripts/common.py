@@ -436,6 +436,10 @@ if __name__ == "__main__":
         stdout.write(get_panda_lib_path())
         exit(0)
 
+    elif "--print-include-path" in argv:
+        stdout.write(get_panda_include_path())
+        exit(0)
+
     elif "--print-short-version" in argv:
         stdout.write(get_panda_short_version())
         exit(0)

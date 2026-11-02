@@ -71,6 +71,30 @@ endif()
 # Don't add lib prefix on Linux
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
+# Locate the Panda3D that is used by the python interpreter
+# Empty if it can not be determined.
+set(PANDA_PY_INCLUDE_DIR "")
+set(PANDA_PY_LIB_DIR "")
+if (NOT WIN32)
+  foreach (_what include lib)
+    execute_process(
+      COMMAND "${PYTHON_EXECUTABLE}" "-B" "scripts/common.py" "--print-${_what}-path"
+      OUTPUT_VARIABLE _path
+      RESULT_VARIABLE _result
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    if (_result EQUAL 0 AND IS_DIRECTORY "${_path}")
+      string(TOUPPER ${_what} _what_upper)
+      set(PANDA_PY_${_what_upper}_DIR "${_path}")
+    endif()
+  endforeach()
+  unset(_what)
+  unset(_what_upper)
+  unset(_path)
+  unset(_result)
+endif()
+
 # Try Panda3D's own CMake package first.
 set(PANDA3D_CMAKE_PACKAGE_FOUND FALSE)
 if (USE_PANDA3D_CMAKE_PACKAGE)
@@ -78,7 +102,13 @@ if (USE_PANDA3D_CMAKE_PACKAGE)
   if (HAVE_LIB_BULLET)
     list(APPEND _p3d_components Bullet)
   endif()
-  find_package(Panda3D QUIET COMPONENTS ${_p3d_components})
+  if (PANDA_PY_LIB_DIR)
+    # Find the package of the Panda3D used by python, not the system wise.
+    find_package(Panda3D QUIET COMPONENTS ${_p3d_components}
+                 HINTS "${PANDA_PY_LIB_DIR}" "${PANDA_PY_LIB_DIR}/.." NO_DEFAULT_PATH)
+  else()
+    find_package(Panda3D QUIET COMPONENTS ${_p3d_components})
+  endif()
   unset(_p3d_components)
   if (Panda3D_FOUND)
     set(PANDA3D_CMAKE_PACKAGE_FOUND TRUE)
@@ -265,10 +295,13 @@ else()
   endif()
 
   if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
-    # Locate the Panda3D headers
+    # Locate the Panda3D headers: first in the Panda3D used by python, then system wise.
+     if (PANDA_PY_INCLUDE_DIR)
+      find_path(PANDA_INCLUDE_DIR dtoolbase.h PATHS "${PANDA_PY_INCLUDE_DIR}" NO_DEFAULT_PATH)
+    endif()
     find_path(PANDA_INCLUDE_DIR dtoolbase.h PATH_SUFFIXES panda3d)
 
-    # Locate the Panda3D libraries
+    # Locate the Panda3D libraries, same order
     set(REQ_LIBRARIES panda pandaexpress p3dtool p3dtoolconfig)
     if(HAVE_LIB_BULLET)
       set(REQ_LIBRARIES pandabullet ${REQ_LIBRARIES})
@@ -276,12 +309,17 @@ else()
 
     set(PANDA_LIBRARIES "")
     foreach (lib ${REQ_LIBRARIES})
+      if (PANDA_PY_LIB_DIR)
+        find_library(PANDA_LIBRARY_${lib} ${lib} PATHS "${PANDA_PY_LIB_DIR}" NO_DEFAULT_PATH)
+      endif()
       find_library(PANDA_LIBRARY_${lib} ${lib} PATH_SUFFIXES panda3d)
       set(PANDA_LIBRARIES "${PANDA_LIBRARIES};${PANDA_LIBRARY_${lib}}")
     endforeach()
 
     find_package_handle_standard_args(Panda DEFAULT_MSG
                                       PANDA_LIBRARIES PANDA_INCLUDE_DIR)
+    message(STATUS "Panda3D headers: ${PANDA_INCLUDE_DIR}")
+    message(STATUS "Panda3D libraries: ${PANDA_LIBRARIES}")
 
     if (NOT EXISTS ${PANDA_INCLUDE_DIR})
       # Okay, the standard package handling failed. Try finding a local panda3d installation
