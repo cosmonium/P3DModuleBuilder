@@ -29,7 +29,7 @@ if __name__ == "__main__":
         help="Windows-X SDK to use",)
     parser.add_argument(
         '--python-libdir', type=str, default=None,
-        help="Path to the Python lib files",)
+        help="Deprecated",)
     parser.add_argument(
         '--python-incdir', type=str, default=None,
         help="Path to the Python include files",)

@@ -102,18 +102,10 @@ def run_cmake(config, args):
         else:
             cmake_args += ["-DUSE_SDK_PATH:BOOL=FALSE"]
 
-    # Specify python version, once as integer, once seperated by a dot
-    pyver = "{}{}".format(sys.version_info.major, sys.version_info.minor)
-    pyver_dot = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
-
+    # Specify the python version (Windows only)
     if is_windows():
+        pyver = "{}{}".format(sys.version_info.major, sys.version_info.minor)
         cmake_args += ["-DPYTHONVER:STRING=" + pyver]
-
-    if is_linux() or is_freebsd() or is_macos():
-        cmake_args += ["-DPYTHONVERDOT:STRING=" + pyver_dot]
-
-    if args.python_libdir is not None:
-        cmake_args += ["-DPYTHON_LIBRARY:STRING=" + args.python_libdir]
 
     if args.python_incdir is not None:
         cmake_args += ["-DPYTHON_INCLUDE_DIRS:STRING=" + args.python_incdir]

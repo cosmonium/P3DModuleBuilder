@@ -83,8 +83,8 @@ print(example.get_answer()) # prints 42
 
 - Python 3.8 or higher
 - The Panda3D SDK (get it <a href="http://www.panda3d.org/download.php?sdk">here</a>)
-- CMake 3.13 or higher (get it <a href="https://cmake.org/download/">here</a>)
-- The `panda3d-interrogate` tool. Either installed via the Panda3D SDK, or with pip
+- CMake 3.18 or higher (get it <a href="https://cmake.org/download/">here</a>)
+- The `panda3d-interrogate` tool. Either installed via the Panda3D SDK, or with pip (Panda3D 1.11+)
 - windows only: The thirdparty folder installed in the Panda3D sdk folder (See <a href="https://www.panda3d.org/forums/viewtopic.php?f=9&t=18775">here</a>)
 
 

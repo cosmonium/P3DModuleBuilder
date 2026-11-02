@@ -1,7 +1,7 @@
 
 set(PROJECT_NAME CACHE STRING "Module")
 
-cmake_minimum_required (VERSION 3.13)
+cmake_minimum_required (VERSION 3.18)
 project (${PROJECT_NAME})
 
 include (FindPackageHandleStandardArgs)
@@ -135,6 +135,19 @@ if (WIN32)
 
   set(PYTHON_LIBRARIES "${WIN_PANDA_PATH}/python/libs/python${PYTHONVER}.lib")
   set(PYTHON_INCLUDE_DIRS "${WIN_PANDA_PATH}/python/include")
+  if (NOT EXISTS "${PYTHON_LIBRARIES}")
+    # Panda3D SDK does not ship the requested Python version
+    # Find the Python include directories from the Python interpreter used to launch the build script.
+    if (PYTHON_EXECUTABLE)
+      set(Python3_EXECUTABLE "${PYTHON_EXECUTABLE}")
+    endif()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+    set(PYTHON_LIBRARIES "${Python3_LIBRARIES}")
+    set(PYTHON_INCLUDE_DIRS "${Python3_INCLUDE_DIRS}")
+    message(STATUS "Python executable: ${Python3_EXECUTABLE} (${Python3_VERSION})")
+    message(STATUS "Python headers: ${PYTHON_INCLUDE_DIRS}")
+    message(STATUS "Python library: ${PYTHON_LIBRARIES}")
+  endif()
 
   if (NOT PANDA3D_CMAKE_PACKAGE_FOUND)
     # Find lib and include directory
@@ -208,11 +221,16 @@ if (WIN32)
   endif()
 
 else()
-  set(PYTHONVERDOT CACHE STRING "2.7")
-  set(Python_ADDITIONAL_VERSIONS ${PYTHONVERDOT})
-
-  if (APPLE OR "${PYTHON_INCLUDE_DIRS}" STREQUAL "")
-    find_package(PythonLibs REQUIRED)
+  # Find the Python include directories from the Python interpreter used to launch the build script.
+  # The include directories can be forced with -DPYTHON_INCLUDE_DIRS
+  if ("${PYTHON_INCLUDE_DIRS}" STREQUAL "")
+    if (PYTHON_EXECUTABLE)
+      set(Python3_EXECUTABLE "${PYTHON_EXECUTABLE}")
+    endif()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+    set(PYTHON_INCLUDE_DIRS "${Python3_INCLUDE_DIRS}")
+    message(STATUS "Python executable: ${Python3_EXECUTABLE} (${Python3_VERSION})")
+    message(STATUS "Python headers: ${PYTHON_INCLUDE_DIRS}")
   endif()
 
   # [LIB] Bullet
@@ -469,8 +487,11 @@ target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 # Add the required libraries
 target_link_libraries(${PROJECT_NAME} ${PANDA_LINK_LIBRARIES} ${LIBRARIES})
 
-if (APPLE OR WIN32)
+if (WIN32)
   target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+elseif (APPLE)
+  # The Python symbols are resolved when the module is loaded by the interpreter
+  target_link_options(${PROJECT_NAME} PRIVATE "LINKER:-undefined,dynamic_lookup")
 endif()
 
 if(WIN32)
