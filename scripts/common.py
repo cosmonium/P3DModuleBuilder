@@ -26,6 +26,8 @@ class MSVCVersion(object):
         return "MSC v." + str(self.version)
 
 MSVC_VERSIONS = [
+    MSVCVersion(1900, "Visual Studio 14 2015", "vc14"),
+
     MSVCVersion(1910, "Visual Studio 15 2017", "vc14"),
     MSVCVersion(1911, "Visual Studio 15 2017", "vc14"),
     MSVCVersion(1912, "Visual Studio 15 2017", "vc14"),
