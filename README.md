@@ -105,6 +105,7 @@ Command line options are:
 
 - `--optimize=N` to override the optimize option. This overrides the option set in the `config.ini`
 - `--clean` to force a clean rebuild
+- `--cmake-generator=NAME` (Windows) to override the CMake generator. This overrides the `cmake_generator` option set in the `config.ini`
 
 ### config.ini
 Further adjustments can be made in the `config.ini` file:
@@ -115,6 +116,7 @@ Further adjustments can be made in the `config.ini` file:
 - You can set `require_lib_eigen` to `1` to require the Eigen 3 library
 - You can set `require_lib_bullet` to `1` to require the Bullet library
 - You can set `require_lib_freetype` to `1` to require the Freetype library
+- You can set `cmake_generator` (Windows) to use another CMake generator than the Visual Studio version used to build Panda3D, for example when a more recent Visual Studio is installed. The toolsets of Visual Studio 2015 and later are binary compatible.
 - You can set `verbose_igate` to `1` or `2` to get detailed interrogate output (1 = verbose, 2 = very verbose)
 
 ### Using a local build of Panda3D

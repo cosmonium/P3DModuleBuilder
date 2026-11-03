@@ -75,7 +75,13 @@ def run_cmake(config, args):
                     "Panda3D SDK from http://www.panda3d.org/download.php?sdk")
 
     if is_windows():
-        cmake_args += ["-G" + get_panda_msvc_version().cmake_str]
+        # By default use the same Visual Studio as the one used to build Panda3D.
+        cmake_generator = args.cmake_generator
+        if cmake_generator is None:
+            cmake_generator = config.get('cmake_generator', None)
+        if cmake_generator is None:
+            cmake_generator = get_panda_msvc_version().cmake_str
+        cmake_args += ["-G" + cmake_generator]
         # Specify 64-bit compiler when using a 64 bit panda sdk build
         cmake_args += ["-Ax64"] if is_64_bit() else ["-AWin32"]
         # Specify Windows SDK to use

@@ -28,6 +28,9 @@ if __name__ == "__main__":
         '--windows-sdk', type=str, default=None,
         help="Windows-X SDK to use",)
     parser.add_argument(
+        '--cmake-generator', type=str, default=None,
+        help="Windows: CMake generator to use, defaults to the Visual Studio used to build Panda3D",)
+    parser.add_argument(
         '--python-libdir', type=str, default=None,
         help="Deprecated",)
     parser.add_argument(
