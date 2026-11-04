@@ -2,7 +2,7 @@
 import shutil
 import sys
 import multiprocessing
-from os import chdir, _exit
+from os import chdir, getcwd, _exit
 from os.path import isdir, isfile
 from panda3d.core import PandaSystem
 
@@ -11,7 +11,7 @@ from .common import is_linux, join_abs, get_panda_lib_path, is_64_bit
 from .common import try_execute, get_script_dir, get_panda_msvc_version
 from .common import have_eigen, have_bullet, have_freetype, print_error
 from .common import is_macos, is_freebsd, is_installed_via_pip
-from .common import get_win_thirdparty_dir, get_target_name
+from .common import get_win_thirdparty_dir, get_target_name, resolve_source_list
 
 
 def make_output_dir(clean=False):
@@ -163,6 +163,12 @@ def run_cmake(config, args):
         cmake_args += ["-DIGATE_VERBOSE=0"]
 
     cmake_args += ["-DOPTIMIZE=" + str(optimize)]
+
+    # List of source files
+    # The current directory is the output directory, two levels below the source directory
+    sources, include_dirs, _ = resolve_source_list(config, join_abs(getcwd(), "..", ".."))
+    cmake_args += ["-DSOURCE_FILES:STRING=" + ";".join(sources)]
+    cmake_args += ["-DSOURCE_INCLUDE_DIRS:STRING=" + ";".join(include_dirs)]
 
     # C++ standard
     if "cxx_standard" in config:

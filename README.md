@@ -117,7 +117,30 @@ Further adjustments can be made in the `config.ini` file:
 - You can set `require_lib_bullet` to `1` to require the Bullet library
 - You can set `require_lib_freetype` to `1` to require the Freetype library
 - You can set `cmake_generator` (Windows) to use another CMake generator than the Visual Studio version used to build Panda3D, for example when a more recent Visual Studio is installed. The toolsets of Visual Studio 2015 and later are binary compatible.
+- You can set `source_dirs` to a comma separated list of directories  which are scanned recursively for source files to run interrogate on and compile.
+- You can set `sources` to an explicit, comma separated list of the files to run interrogate on and compile, in addition to the files of `source_dirs`. The directories containing these files are added to the include paths.
+- You can set `include_dirs` to a comma separated list of additional include directories for compilation.
+- You can set `interrogate_exclude` to a comma separated list of files, that are compiled but not parsed by interrogate.
 - You can set `verbose_igate` to `1` or `2` to get detailed interrogate output (1 = verbose, 2 = very verbose)
+
+Notes:
+
+- Source files are files with the extensions `.cpp`, `.cxx`, `.cc`, `.c`, `.hpp`, `.h` and `.I`.
+- Paths are relative to the directory containing `config.ini`, Absolute paths are not supported.
+- Path may contain glob patterns, `**`matches recursively. Non-matching globs are ignored.
+- Directories named `build` are ignored when scanning for source files.
+- If neither `source_dirs` nor `sources` is set, `source_dirs` defaults to `.`, the directory containing `config.ini`.
+
+Example of an explicit list of sources, using code from a third-party library:
+
+```ini
+source_dirs=.
+sources=../third-party/lib/src/**/*.cpp
+include_dirs=../third-party/lib/include
+interrogate_exclude=../third-party/lib/src/**/*.cpp
+```
+
+Note that `config.ini` values are read on a single line, and cannot contain `=`.
 
 ### Using a local build of Panda3D
 

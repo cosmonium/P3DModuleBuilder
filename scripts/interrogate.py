@@ -6,12 +6,9 @@ Runs the interrogate and interrogate_module commands from Panda3D.
 """
 
 import sys
-from os import listdir
-from os.path import join, isfile, isdir
-import re
 
 from panda3d.core import PandaSystem
-from common import debug_out, get_panda_include_path
+from common import debug_out, get_panda_include_path, get_ini_conf, resolve_source_list
 from common import get_compiler_name, is_64_bit, try_execute, join_abs, get_script_dir
 from common import get_interrogate_executable, get_interrogate_module_executable
 
@@ -25,36 +22,11 @@ MODULE_NAME = sys.argv[1]
 VERBOSE_LVL = int(sys.argv[2])  # Assume the user did specify something valid
 
 
-def check_ignore(source):
-    """ This function checks if a file is on the ignore list """
-    for f in ["interrogate_module.cpp", "interrogate_wrapper.cpp"]:
-        if f.lower() in source.lower():
-            return False
-    return True
-
-
-def find_sources(base_dir):
-    """ Collects all header files recursively """
-    sources = []
-    files = listdir(base_dir)
-    p = re.compile(r'.*\.(h|c)((pp|xx)?)$', flags=re.I)
-    for f in files:
-        fpath = join(base_dir, f)
-        if isfile(fpath) and check_ignore(f) and  p.match(f) is not None:
-            if f.endswith(".pb.h"):
-                continue # Skip protobuf
-            sources.append(fpath)
-        elif isdir(fpath):
-            if f != 'build':
-                sources += find_sources(fpath)
-    return sources
-
-
 def interrogate():
     """ Runs interrogate over the source directory """
 
-    # Collect source files and convert them to a relative path
-    all_sources = find_sources(".")
+    # Collect the source files and the include directories
+    _, include_dirs, all_sources = resolve_source_list(get_ini_conf("config.ini"))
 
     # Create the interrogate command
     cmd = [get_interrogate_executable()]
@@ -69,9 +41,8 @@ def interrogate():
     cmd += ["-S" + get_panda_include_path() + "/"]
 
     # Add all subdirectories
-    for pth in listdir("."):
-        if isdir(pth):
-            cmd += ["-I" + pth]
+    for pth in include_dirs:
+        cmd += ["-I" + pth]
 
     cmd += ["-srcdir", "."]
     cmd += ["-oc", "interrogate_wrapper.cpp"]
